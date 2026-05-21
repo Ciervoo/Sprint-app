@@ -17,6 +17,7 @@
   --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
   --red:#f87171;--red-bg:rgba(248,113,113,0.1);
   --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);
   --radius:10px;--radius-sm:6px;
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
@@ -34,8 +35,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .nav-item.active{background:rgba(91,141,238,0.12);color:var(--accent);font-weight:500}
 .nav-item i{font-size:16px}
 .main{flex:1;overflow-y:auto;background:var(--bg);padding:24px}
-.section{display:none}
-.section.active{display:block}
+.section{display:none}.section.active{display:block}
 .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .top-bar h2{font-size:18px;font-weight:500;letter-spacing:-0.4px}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
@@ -45,23 +45,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 14px;font-size:11px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg3);text-transform:uppercase;letter-spacing:0.5px}
-td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg3)}
-.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;cursor:default;white-space:nowrap}
 .badge-green{background:var(--green-bg);color:var(--green)}
 .badge-red{background:var(--red-bg);color:var(--red)}
 .badge-amber{background:var(--amber-bg);color:var(--amber)}
 .badge-blue{background:rgba(91,141,238,0.12);color:var(--accent)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-gray{background:rgba(153,153,170,0.1);color:var(--text2)}
+.badge-clickable{cursor:pointer;transition:opacity 0.15s}
+.badge-clickable:hover{opacity:0.75}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;transition:all 0.15s;font-weight:400}
-.btn:hover{background:var(--bg4);border-color:var(--border2)}
+.btn:hover{background:var(--bg4)}
 .btn-primary{background:var(--accent);color:white;border-color:var(--accent)}
 .btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
-.btn-sm{padding:5px 11px;font-size:12px}
+.btn-danger{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,0.3)}
+.btn-danger:hover{background:rgba(248,113,113,0.2)}
+.btn-icon{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text2);cursor:pointer;font-size:14px;transition:all 0.15s;display:inline-flex;align-items:center}
+.btn-icon:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-icon.danger:hover{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,0.3)}
 .modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
 .modal-bg.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:24px;width:500px;max-height:88vh;overflow-y:auto}
-.modal-wide{width:620px}
+.modal-wide{width:680px}
 .modal h3{font-size:15px;font-weight:500;margin-bottom:20px;letter-spacing:-0.3px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
@@ -69,7 +77,8 @@ tr:hover td{background:var(--bg3)}
 .form-group input,.form-group select{padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;transition:border 0.15s;outline:none}
 .form-group input:focus,.form-group select:focus{border-color:var(--accent)}
 .form-group input[readonly]{background:var(--bg);color:var(--text2)}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.modal-footer{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.modal-footer-right{display:flex;gap:8px}
 .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 .client-card{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;background:var(--bg2);transition:all 0.15s}
 .client-card:hover{border-color:var(--border2);background:var(--bg3)}
@@ -81,12 +90,13 @@ tr:hover td{background:var(--bg3)}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
 .profit-pos{color:var(--green);font-family:'DM Mono',monospace}
 .mono{font-family:'DM Mono',monospace}
-.stock-low{color:var(--red)}
+.highlight-box{background:rgba(91,141,238,0.07);border:1px solid rgba(91,141,238,0.2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)}
+.actions-cell{display:flex;gap:5px;align-items:center}
+.pending-row td{background:rgba(167,139,250,0.04)}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
 select option{background:var(--bg3);color:var(--text)}
-.highlight-box{background:rgba(91,141,238,0.07);border:1px solid rgba(91,141,238,0.2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -97,7 +107,7 @@ select option{background:var(--bg3);color:var(--text)}
     <div class="logo-text">Sprint</div>
     <span class="logo-sub">Gestión comercial</span>
   </div>
-  <span class="version">v1.1</span>
+  <span class="version">v1.3</span>
 </div>
 
 <div class="layout">
@@ -114,24 +124,21 @@ select option{background:var(--bg3);color:var(--text)}
 
   <div class="main">
 
-    <!-- DASHBOARD -->
     <div class="section active" id="sec-dashboard">
       <div class="top-bar"><h2>Resumen general</h2></div>
       <div class="metrics" id="dash-metrics"></div>
       <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Últimas ventas</div>
-      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Monto</th><th>Ganancia</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Total</th><th>Entrega</th><th>Cobro</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
     </div>
 
-    <!-- VENTAS -->
     <div class="section" id="sec-ventas">
       <div class="top-bar">
         <h2>Ventas</h2>
-        <button class="btn btn-primary" onclick="abrirModalVenta(null)"><i class="ti ti-plus"></i> Nueva venta</button>
+        <button class="btn btn-primary" onclick="abrirModalVenta(null,null)"><i class="ti ti-plus"></i> Nueva venta</button>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant</th><th>Precio unit</th><th>Desc</th><th>Total</th><th>Pago</th><th>Estado</th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant</th><th>Precio</th><th>Desc</th><th>Total</th><th>Pago</th><th>Entrega</th><th>Cobro</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
     </div>
 
-    <!-- COMPRAS -->
     <div class="section" id="sec-compras">
       <div class="top-bar">
         <h2>Compras de mercadería</h2>
@@ -140,17 +147,15 @@ select option{background:var(--bg3);color:var(--text)}
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cantidad</th><th>Costo unit.</th><th>Total</th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
     </div>
 
-    <!-- STOCK -->
     <div class="section" id="sec-stock">
       <div class="top-bar"><h2>Stock actual</h2></div>
       <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Unidad</th><th>Stock</th><th>Costo unit.</th><th>Precio venta</th><th>Margen</th></tr></thead><tbody id="stock-tbody"></tbody></table></div>
     </div>
 
-    <!-- CLIENTES -->
     <div class="section" id="sec-clientes">
       <div class="top-bar">
         <h2>Clientes</h2>
-        <button class="btn btn-primary" onclick="openModal('modal-cliente')"><i class="ti ti-plus"></i> Nuevo cliente</button>
+        <button class="btn btn-primary" onclick="abrirNuevoCliente()"><i class="ti ti-plus"></i> Nuevo cliente</button>
       </div>
       <input class="search-bar" placeholder="Buscar por nombre o zona..." id="search-cliente" oninput="renderClientes()">
       <div id="clientes-list"></div>
@@ -162,7 +167,7 @@ select option{background:var(--bg3);color:var(--text)}
 <!-- MODAL VENTA -->
 <div class="modal-bg" id="modal-venta">
   <div class="modal">
-    <h3><i class="ti ti-receipt" style="margin-right:8px;color:var(--accent)"></i>Registrar venta</h3>
+    <h3 id="modal-venta-titulo"></h3>
     <div class="highlight-box" id="v-cliente-info" style="display:none"></div>
     <div class="form-row">
       <div class="form-group"><label>Cliente</label><select id="v-cliente" onchange="onClienteVentaChange()"></select></div>
@@ -181,12 +186,23 @@ select option{background:var(--bg3);color:var(--text)}
       <div class="form-group"><label>Forma de pago</label>
         <select id="v-pago"><option>Efectivo</option><option>Transferencia</option><option>Cheque</option><option>Cuenta corriente</option></select>
       </div>
-      <div class="form-group"><label>Total a cobrar</label><input type="text" id="v-total" readonly></div>
+      <div class="form-group"><label>Total</label><input type="text" id="v-total" readonly></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Estado de entrega</label>
+        <select id="v-entrega"><option value="pendiente">A entregar</option><option value="entregado">Entregado</option></select>
+      </div>
+      <div class="form-group"><label>Estado de cobro</label>
+        <select id="v-cobrado"><option value="pendiente">Pendiente de cobro</option><option value="cobrado">Cobrado</option></select>
+      </div>
     </div>
     <div class="form-group"><label>Notas</label><input type="text" id="v-notas" placeholder="Opcional..."></div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-venta')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarVenta()"><i class="ti ti-check"></i> Registrar venta</button>
+      <div id="v-btn-eliminar"></div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="closeModal('modal-venta')">Cancelar</button>
+        <button class="btn btn-primary" id="v-btn-guardar" onclick="guardarVenta()"><i class="ti ti-check"></i> Registrar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -204,8 +220,11 @@ select option{background:var(--bg3);color:var(--text)}
       <div class="form-group"><label>Costo unitario ($)</label><input type="number" id="c-costo" placeholder="0"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-compra')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarCompra()">Registrar</button>
+      <div></div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="closeModal('modal-compra')">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarCompra()">Registrar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -213,7 +232,8 @@ select option{background:var(--bg3);color:var(--text)}
 <!-- MODAL CLIENTE -->
 <div class="modal-bg" id="modal-cliente">
   <div class="modal">
-    <h3><i class="ti ti-user" style="margin-right:8px;color:var(--accent)"></i>Nuevo cliente</h3>
+    <h3 id="modal-cliente-titulo"></h3>
+    <input type="hidden" id="cl-id">
     <div class="form-row">
       <div class="form-group"><label>Nombre / Taller</label><input type="text" id="cl-nombre" placeholder="Ej: Taller GDR"></div>
       <div class="form-group"><label>Contacto</label><input type="text" id="cl-contacto" placeholder="Nombre del dueño"></div>
@@ -226,8 +246,11 @@ select option{background:var(--bg3);color:var(--text)}
     </div>
     <div class="form-group"><label>Dirección</label><input type="text" id="cl-dir" placeholder="Opcional"></div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-cliente')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarCliente()">Guardar cliente</button>
+      <div id="cl-btn-eliminar"></div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="closeModal('modal-cliente')">Cancelar</button>
+        <button class="btn btn-primary" id="cl-btn-guardar" onclick="guardarCliente()">Guardar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -237,9 +260,12 @@ select option{background:var(--bg3);color:var(--text)}
   <div class="modal modal-wide">
     <div id="detalle-cliente-content"></div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-detalle-cliente')">Cerrar</button>
-      <button class="btn" onclick="abrirPagoDesdeDetalle()"><i class="ti ti-cash"></i> Registrar pago</button>
-      <button class="btn btn-primary" onclick="abrirVentaDesdeDetalle()"><i class="ti ti-plus"></i> Nueva venta</button>
+      <div></div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="closeModal('modal-detalle-cliente')">Cerrar</button>
+        <button class="btn" onclick="abrirPagoDesdeDetalle()"><i class="ti ti-cash"></i> Registrar pago</button>
+        <button class="btn btn-primary" onclick="abrirVentaDesdeDetalle()"><i class="ti ti-plus"></i> Nueva venta</button>
+      </div>
     </div>
   </div>
 </div>
@@ -257,8 +283,11 @@ select option{background:var(--bg3);color:var(--text)}
     </div>
     <div class="form-group"><label>Fecha</label><input type="date" id="p-fecha"></div>
     <div class="modal-footer">
-      <button class="btn" onclick="volverADetalle()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarPago()">Registrar pago</button>
+      <div></div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="volverADetalle()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarPago()">Registrar pago</button>
+      </div>
     </div>
   </div>
 </div>
@@ -291,11 +320,16 @@ function loadDB(){try{return JSON.parse(localStorage.getItem('sprint-db'))||{ven
 function saveDB(){localStorage.setItem('sprint-db',JSON.stringify(DB))}
 let DB=loadDB();
 let clienteActivo=null;
+let ventaEditandoId=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR')}
 function today(){return new Date().toISOString().slice(0,10)}
 function initStock(){PRODUCTOS.forEach(p=>{if(DB.stock[p.id]===undefined)DB.stock[p.id]=0});saveDB()}
 initStock();
+
+// migrar ventas viejas que no tienen campo entrega
+DB.ventas.forEach(v=>{if(v.entregado===undefined)v.entregado=true;});
+saveDB();
 
 function showSection(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -320,34 +354,68 @@ function openModal(id){
 }
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 
-function fillSelect(id,opts){
+function fillSelect(id,opts,selected){
   const s=document.getElementById(id);
-  s.innerHTML=opts.map(o=>`<option value="${o.val}">${o.label}</option>`).join('');
+  s.innerHTML=opts.map(o=>`<option value="${o.val}"${selected&&o.val===selected?' selected':''}>${o.label}</option>`).join('');
 }
 
-// ABRIR MODAL VENTA — puede venir con cliente pre-seleccionado
-function abrirModalVenta(preClienteId){
+// badges de estado
+function badgeEntrega(entregado,vid){
+  if(entregado) return`<span class="badge badge-green badge-clickable" onclick="toggleEntrega(${vid})" title="Click para cambiar"><i class="ti ti-truck" style="font-size:11px"></i> Entregado</span>`;
+  return`<span class="badge badge-purple badge-clickable" onclick="toggleEntrega(${vid})" title="Click para marcar entregado"><i class="ti ti-clock" style="font-size:11px"></i> A entregar</span>`;
+}
+function badgeCobro(cobrado,total,vid){
+  if(cobrado>=total) return`<span class="badge badge-green badge-clickable" onclick="toggleCobro(${vid})" title="Click para cambiar"><i class="ti ti-circle-check" style="font-size:11px"></i> Cobrado</span>`;
+  return`<span class="badge badge-amber badge-clickable" onclick="toggleCobro(${vid})" title="Click para marcar cobrado"><i class="ti ti-clock" style="font-size:11px"></i> Pendiente</span>`;
+}
+
+// ── MODAL VENTA ──
+function abrirModalVenta(preClienteId, editVentaId){
   if(!DB.clientes.length){alert('Primero registrá un cliente.');return;}
+  ventaEditandoId=editVentaId||null;
   fillSelect('v-cliente',DB.clientes.map(c=>({val:c.id,label:c.nombre})));
   fillSelect('v-producto',PRODUCTOS.map(p=>({val:p.id,label:p.nombre+' ('+p.unidad+')'})));
-  document.getElementById('v-fecha').value=today();
-  document.getElementById('v-notas').value='';
-  document.getElementById('v-cant').value=1;
-  document.getElementById('v-desc').value=0;
-  if(preClienteId){
-    document.getElementById('v-cliente').value=preClienteId;
-    onClienteVentaChange();
+
+  if(editVentaId){
+    const v=DB.ventas.find(x=>x.id===editVentaId);
+    if(!v)return;
+    document.getElementById('modal-venta-titulo').innerHTML='<i class="ti ti-edit" style="margin-right:8px;color:var(--amber)"></i>Editar venta';
+    document.getElementById('v-btn-guardar').innerHTML='<i class="ti ti-check"></i> Guardar cambios';
+    document.getElementById('v-btn-eliminar').innerHTML=`<button class="btn btn-danger" onclick="eliminarVenta(${editVentaId})"><i class="ti ti-trash"></i> Eliminar</button>`;
+    document.getElementById('v-cliente').value=v.cid;
+    document.getElementById('v-fecha').value=v.fecha;
+    document.getElementById('v-producto').value=v.pid;
+    document.getElementById('v-cant').value=v.cant;
+    document.getElementById('v-precio').value=v.precio;
+    document.getElementById('v-pago').value=v.pago;
+    document.getElementById('v-notas').value=v.notas||'';
+    document.getElementById('v-entrega').value=v.entregado?'entregado':'pendiente';
+    document.getElementById('v-cobrado').value=v.cobrado>=v.total?'cobrado':'pendiente';
+    const p=PRODUCTOS.find(x=>x.id===v.pid);
+    if(p){
+      document.getElementById('v-precio-lista').value=fmt(p.precio);
+      document.getElementById('v-desc').value=Math.max(0,Math.round((1-v.precio/p.precio)*100));
+    }
+    document.getElementById('v-total').value=fmt(v.precio*v.cant);
   } else {
-    document.getElementById('v-cliente-info').style.display='none';
+    document.getElementById('modal-venta-titulo').innerHTML='<i class="ti ti-receipt" style="margin-right:8px;color:var(--accent)"></i>Registrar venta';
+    document.getElementById('v-btn-guardar').innerHTML='<i class="ti ti-check"></i> Registrar';
+    document.getElementById('v-btn-eliminar').innerHTML='';
+    document.getElementById('v-fecha').value=today();
+    document.getElementById('v-notas').value='';
+    document.getElementById('v-cant').value=1;
+    document.getElementById('v-desc').value=0;
+    document.getElementById('v-entrega').value='pendiente';
+    document.getElementById('v-cobrado').value='pendiente';
+    if(preClienteId)document.getElementById('v-cliente').value=preClienteId;
+    onProductoChange();
   }
-  onProductoChange();
+  onClienteVentaChange();
   closeModal('modal-detalle-cliente');
   document.getElementById('modal-venta').classList.add('open');
 }
 
-function abrirVentaDesdeDetalle(){
-  abrirModalVenta(clienteActivo);
-}
+function abrirVentaDesdeDetalle(){abrirModalVenta(clienteActivo,null)}
 
 function onClienteVentaChange(){
   const cid=document.getElementById('v-cliente').value;
@@ -355,14 +423,11 @@ function onClienteVentaChange(){
   const info=document.getElementById('v-cliente-info');
   if(cl){
     const vc=DB.ventas.filter(v=>v.cid===cid);
-    const deuda=cl.deuda||0;
     info.style.display='block';
     info.innerHTML=`<strong>${cl.nombre}</strong> · ${cl.zona}${cl.tel?' · '+cl.tel:''}
-      ${deuda>0?` &nbsp;<span class="badge badge-red">${fmt(deuda)} pendiente</span>`:''}
+      ${(cl.deuda||0)>0?` &nbsp;<span class="badge badge-red">${fmt(cl.deuda)} pendiente</span>`:''}
       ${vc.length?` &nbsp;<span class="badge badge-blue">${vc.length} compra${vc.length>1?'s':''} prev.</span>`:''}`;
-  } else {
-    info.style.display='none';
-  }
+  } else {info.style.display='none';}
 }
 
 function onProductoChange(){
@@ -380,17 +445,17 @@ function calcVenta(){
   const precio=parseFloat(document.getElementById('v-precio').value)||0;
   const pid=document.getElementById('v-producto').value;
   const p=PRODUCTOS.find(x=>x.id===pid);
-  if(p){const desc=Math.round((1-precio/p.precio)*100);document.getElementById('v-desc').value=Math.max(0,desc);}
+  if(p)document.getElementById('v-desc').value=Math.max(0,Math.round((1-precio/p.precio)*100));
   document.getElementById('v-total').value=fmt(precio*cant);
 }
 function calcFromDesc(){
   const pid=document.getElementById('v-producto').value;
   const p=PRODUCTOS.find(x=>x.id===pid);
   if(!p)return;
-  const desc=parseFloat(document.getElementById('v-desc').value)||0;
-  document.getElementById('v-precio').value=Math.round(p.precio*(1-desc/100));
+  document.getElementById('v-precio').value=Math.round(p.precio*(1-(parseFloat(document.getElementById('v-desc').value)||0)/100));
   calcVenta();
 }
+
 function guardarVenta(){
   const cid=document.getElementById('v-cliente').value;
   const pid=document.getElementById('v-producto').value;
@@ -399,20 +464,82 @@ function guardarVenta(){
   const pago=document.getElementById('v-pago').value;
   const fecha=document.getElementById('v-fecha').value;
   const notas=document.getElementById('v-notas').value;
+  const entregado=document.getElementById('v-entrega').value==='entregado';
+  const esCobrado=document.getElementById('v-cobrado').value==='cobrado';
   const p=PRODUCTOS.find(x=>x.id===pid);
   const total=precio*cant;
   const costo=p.costo*cant;
-  const esCuenta=pago==='Cuenta corriente';
-  DB.ventas.push({id:Date.now(),cid,pid,cant,precio,total,costo,pago,fecha,notas,cobrado:esCuenta?0:total});
+  const cobrado=esCobrado?total:0;
+
+  if(ventaEditandoId){
+    const vieja=DB.ventas.find(x=>x.id===ventaEditandoId);
+    if(vieja){
+      DB.stock[vieja.pid]=(DB.stock[vieja.pid]||0)+vieja.cant;
+      if(vieja.cobrado<vieja.total){
+        const clV=DB.clientes.find(c=>c.id===vieja.cid);
+        if(clV)clV.deuda=Math.max(0,(clV.deuda||0)-(vieja.total-vieja.cobrado));
+      }
+    }
+    DB.ventas=DB.ventas.filter(x=>x.id!==ventaEditandoId);
+  }
+
+  DB.ventas.push({id:ventaEditandoId||Date.now(),cid,pid,cant,precio,total,costo,pago,fecha,notas,cobrado,entregado});
   DB.stock[pid]=(DB.stock[pid]||0)-cant;
-  if(esCuenta){const cl=DB.clientes.find(c=>c.id===cid);if(cl)cl.deuda=(cl.deuda||0)+total;}
+  if(!esCobrado){
+    const cl=DB.clientes.find(c=>c.id===cid);
+    if(cl)cl.deuda=(cl.deuda||0)+(total-cobrado);
+  }
   saveDB();
   closeModal('modal-venta');
-  // si veníamos desde detalle del cliente, volver a abrirlo actualizado
   if(clienteActivo===cid)verCliente(cid);
-  renderVentas();
-  renderDashboard();
+  renderVentas();renderDashboard();
 }
+
+function eliminarVenta(id){
+  if(!confirm('¿Eliminar esta venta?'))return;
+  const v=DB.ventas.find(x=>x.id===id);
+  if(v){
+    DB.stock[v.pid]=(DB.stock[v.pid]||0)+v.cant;
+    if(v.cobrado<v.total){
+      const cl=DB.clientes.find(c=>c.id===v.cid);
+      if(cl)cl.deuda=Math.max(0,(cl.deuda||0)-(v.total-v.cobrado));
+    }
+    DB.ventas=DB.ventas.filter(x=>x.id!==id);
+  }
+  saveDB();closeModal('modal-venta');
+  renderVentas();renderDashboard();
+  if(clienteActivo)verCliente(clienteActivo);
+}
+
+function toggleEntrega(id){
+  const v=DB.ventas.find(x=>x.id===id);
+  if(!v)return;
+  v.entregado=!v.entregado;
+  saveDB();
+  renderVentas();renderDashboard();
+  if(clienteActivo===v.cid)verCliente(v.cid);
+}
+
+function toggleCobro(id){
+  const v=DB.ventas.find(x=>x.id===id);
+  if(!v)return;
+  const eraPendiente=v.cobrado<v.total;
+  if(eraPendiente){
+    const diff=v.total-v.cobrado;
+    v.cobrado=v.total;
+    const cl=DB.clientes.find(c=>c.id===v.cid);
+    if(cl)cl.deuda=Math.max(0,(cl.deuda||0)-diff);
+  } else {
+    v.cobrado=0;
+    const cl=DB.clientes.find(c=>c.id===v.cid);
+    if(cl)cl.deuda=(cl.deuda||0)+v.total;
+  }
+  saveDB();
+  renderVentas();renderDashboard();renderClientes();
+  if(clienteActivo===v.cid)verCliente(v.cid);
+}
+
+// ── COMPRA ──
 function guardarCompra(){
   const pid=document.getElementById('c-producto').value;
   const cant=parseFloat(document.getElementById('c-cant').value)||1;
@@ -420,23 +547,58 @@ function guardarCompra(){
   const fecha=document.getElementById('c-fecha').value;
   DB.compras.push({id:Date.now(),pid,cant,costo,fecha});
   DB.stock[pid]=(DB.stock[pid]||0)+cant;
-  saveDB();
-  closeModal('modal-compra');
-  renderCompras();
-  renderStock();
+  saveDB();closeModal('modal-compra');
+  renderCompras();renderStock();
+}
+
+// ── CLIENTE ──
+function abrirNuevoCliente(){
+  document.getElementById('modal-cliente-titulo').innerHTML='<i class="ti ti-user" style="margin-right:8px;color:var(--accent)"></i>Nuevo cliente';
+  document.getElementById('cl-btn-guardar').textContent='Guardar';
+  document.getElementById('cl-id').value='';
+  document.getElementById('cl-btn-eliminar').innerHTML='';
+  ['cl-nombre','cl-contacto','cl-tel','cl-dir'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cl-zona').value='Pilar';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+function abrirEditarCliente(cid){
+  const cl=DB.clientes.find(c=>c.id===cid);
+  if(!cl)return;
+  document.getElementById('modal-cliente-titulo').innerHTML='<i class="ti ti-edit" style="margin-right:8px;color:var(--amber)"></i>Editar cliente';
+  document.getElementById('cl-btn-guardar').textContent='Guardar cambios';
+  document.getElementById('cl-id').value=cl.id;
+  document.getElementById('cl-nombre').value=cl.nombre;
+  document.getElementById('cl-contacto').value=cl.contacto||'';
+  document.getElementById('cl-tel').value=cl.tel||'';
+  document.getElementById('cl-zona').value=cl.zona||'Pilar';
+  document.getElementById('cl-dir').value=cl.dir||'';
+  document.getElementById('cl-btn-eliminar').innerHTML=`<button class="btn btn-danger" onclick="eliminarCliente('${cid}')"><i class="ti ti-trash"></i> Eliminar</button>`;
+  closeModal('modal-detalle-cliente');
+  document.getElementById('modal-cliente').classList.add('open');
 }
 function guardarCliente(){
   const nombre=document.getElementById('cl-nombre').value.trim();
   if(!nombre){alert('Ingresá un nombre.');return;}
-  DB.clientes.push({id:'cl-'+Date.now(),nombre,contacto:document.getElementById('cl-contacto').value,tel:document.getElementById('cl-tel').value,zona:document.getElementById('cl-zona').value,dir:document.getElementById('cl-dir').value,deuda:0});
-  // limpiar campos
-  ['cl-nombre','cl-contacto','cl-tel','cl-dir'].forEach(id=>document.getElementById(id).value='');
-  saveDB();
-  closeModal('modal-cliente');
-  renderClientes();
+  const existingId=document.getElementById('cl-id').value;
+  if(existingId){
+    const cl=DB.clientes.find(c=>c.id===existingId);
+    if(cl){cl.nombre=nombre;cl.contacto=document.getElementById('cl-contacto').value;cl.tel=document.getElementById('cl-tel').value;cl.zona=document.getElementById('cl-zona').value;cl.dir=document.getElementById('cl-dir').value;}
+  } else {
+    DB.clientes.push({id:'cl-'+Date.now(),nombre,contacto:document.getElementById('cl-contacto').value,tel:document.getElementById('cl-tel').value,zona:document.getElementById('cl-zona').value,dir:document.getElementById('cl-dir').value,deuda:0});
+  }
+  saveDB();closeModal('modal-cliente');renderClientes();
+  if(existingId&&clienteActivo===existingId)verCliente(existingId);
+}
+function eliminarCliente(cid){
+  if(DB.ventas.some(v=>v.cid===cid)){alert('No podés eliminar un cliente con ventas registradas.');return;}
+  if(!confirm('¿Eliminar este cliente?'))return;
+  DB.clientes=DB.clientes.filter(c=>c.id!==cid);
+  DB.pagos=DB.pagos.filter(p=>p.cid!==cid);
+  saveDB();closeModal('modal-cliente');closeModal('modal-detalle-cliente');
+  clienteActivo=null;renderClientes();
 }
 
-// PAGO
+// ── PAGO ──
 function abrirPagoDesdeDetalle(){
   if(!clienteActivo)return;
   const cl=DB.clientes.find(c=>c.id===clienteActivo);
@@ -447,10 +609,7 @@ function abrirPagoDesdeDetalle(){
   closeModal('modal-detalle-cliente');
   document.getElementById('modal-pago').classList.add('open');
 }
-function volverADetalle(){
-  closeModal('modal-pago');
-  if(clienteActivo)verCliente(clienteActivo);
-}
+function volverADetalle(){closeModal('modal-pago');if(clienteActivo)verCliente(clienteActivo);}
 function guardarPago(){
   if(!clienteActivo)return;
   const monto=parseFloat(document.getElementById('p-monto').value)||0;
@@ -459,55 +618,80 @@ function guardarPago(){
   const cl=DB.clientes.find(c=>c.id===clienteActivo);
   if(cl)cl.deuda=Math.max(0,(cl.deuda||0)-monto);
   DB.pagos.push({cid:clienteActivo,monto,forma,fecha,id:Date.now()});
-  saveDB();
-  closeModal('modal-pago');
-  verCliente(clienteActivo);
-  renderClientes();
+  saveDB();closeModal('modal-pago');verCliente(clienteActivo);renderClientes();
 }
 
-// RENDERS
+// ── RENDERS ──
 function renderDashboard(){
   const tv=DB.ventas.reduce((a,v)=>a+v.total,0);
   const tg=DB.ventas.reduce((a,v)=>a+(v.total-v.costo),0);
   const td=DB.clientes.reduce((a,c)=>a+(c.deuda||0),0);
-  const tc=DB.compras.reduce((a,c)=>a+(c.costo*c.cant),0);
+  const pendEntrega=DB.ventas.filter(v=>!v.entregado).length;
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric"><div class="metric-label">Ventas totales</div><div class="metric-val">${fmt(tv)}</div></div>
     <div class="metric"><div class="metric-label">Ganancia bruta</div><div class="metric-val" style="color:var(--green)">${fmt(tg)}</div></div>
     <div class="metric"><div class="metric-label">Deuda clientes</div><div class="metric-val" style="color:var(--red)">${fmt(td)}</div></div>
-    <div class="metric"><div class="metric-label">Total compras</div><div class="metric-val">${fmt(tc)}</div></div>`;
-  const ultimas=[...DB.ventas].reverse().slice(0,8);
-  document.getElementById('dash-tbody').innerHTML=ultimas.length?ultimas.map(v=>{
+    <div class="metric"><div class="metric-label">A entregar</div><div class="metric-val" style="color:var(--purple)">${pendEntrega}</div></div>`;
+  const ul=[...DB.ventas].reverse().slice(0,8);
+  document.getElementById('dash-tbody').innerHTML=ul.length?ul.map(v=>{
     const cl=DB.clientes.find(c=>c.id===v.cid);
     const p=PRODUCTOS.find(x=>x.id===v.pid);
-    return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td><td>${cl?cl.nombre:'-'}</td><td style="color:var(--text2)">${p?p.nombre:'-'}</td><td class="mono">${fmt(v.total)}</td><td class="profit-pos">${fmt(v.total-v.costo)}</td></tr>`}).join(''):`<tr><td colspan="5" class="empty">Sin ventas aún</td></tr>`;
+    return`<tr>
+      <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
+      <td>${cl?cl.nombre:'-'}</td>
+      <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:'-'}</td>
+      <td class="mono">${fmt(v.total)}</td>
+      <td>${badgeEntrega(v.entregado,v.id)}</td>
+      <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+    </tr>`}).join(''):`<tr><td colspan="6" class="empty">Sin ventas aún</td></tr>`;
 }
+
 function renderVentas(){
   document.getElementById('ventas-tbody').innerHTML=DB.ventas.length?[...DB.ventas].reverse().map(v=>{
     const cl=DB.clientes.find(c=>c.id===v.cid);
     const p=PRODUCTOS.find(x=>x.id===v.pid);
     const desc=p?Math.max(0,Math.round((1-v.precio/p.precio)*100)):0;
-    const cobrado=v.cobrado>=v.total;
-    return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td><td>${cl?cl.nombre:'-'}</td><td style="color:var(--text2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:'-'}</td><td>${v.cant}</td><td class="mono">${fmt(v.precio)}</td><td>${desc>0?'<span class="badge badge-amber">-'+desc+'%</span>':'-'}</td><td class="mono">${fmt(v.total)}</td><td><span class="badge badge-blue">${v.pago}</span></td><td><span class="badge ${cobrado?'badge-green':'badge-amber'}">${cobrado?'Cobrado':'Pendiente'}</span></td></tr>`}).join(''):`<tr><td colspan="9" class="empty">Sin ventas registradas</td></tr>`;
+    const rowClass=!v.entregado?'class="pending-row"':'';
+    return`<tr ${rowClass}>
+      <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
+      <td>${cl?cl.nombre:'-'}</td>
+      <td style="color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:'-'}</td>
+      <td>${v.cant}</td>
+      <td class="mono">${fmt(v.precio)}</td>
+      <td>${desc>0?'<span class="badge badge-gray">-'+desc+'%</span>':'-'}</td>
+      <td class="mono">${fmt(v.total)}</td>
+      <td><span class="badge badge-blue">${v.pago}</span></td>
+      <td>${badgeEntrega(v.entregado,v.id)}</td>
+      <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+      <td><div class="actions-cell">
+        <button class="btn-icon" onclick="abrirModalVenta(null,${v.id})" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn-icon danger" onclick="if(confirm('¿Eliminar?'))eliminarVenta(${v.id})" title="Eliminar"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`}).join(''):`<tr><td colspan="11" class="empty">Sin ventas registradas</td></tr>`;
 }
+
 function renderCompras(){
   document.getElementById('compras-tbody').innerHTML=DB.compras.length?[...DB.compras].reverse().map(c=>{
     const p=PRODUCTOS.find(x=>x.id===c.pid);
     return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':'-'}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td></tr>`}).join(''):`<tr><td colspan="5" class="empty">Sin compras registradas</td></tr>`;
 }
+
 function renderStock(){
   document.getElementById('stock-tbody').innerHTML=PRODUCTOS.map(p=>{
     const s=DB.stock[p.id]||0;
     const margen=Math.round((1-p.costo/p.precio)*100);
     return`<tr><td>${p.nombre}</td><td style="color:var(--text2)">${p.unidad}</td><td>${s<=0?'<span class="badge badge-red">Sin stock</span>':'<span class="mono">'+s+'</span>'}</td><td class="mono" style="color:var(--text2)">${fmt(p.costo)}</td><td class="mono">${fmt(p.precio)}</td><td class="profit-pos">${margen}%</td></tr>`}).join('');
 }
+
 function renderClientes(){
   const q=(document.getElementById('search-cliente')||{}).value||'';
   const lista=DB.clientes.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())||c.zona.toLowerCase().includes(q.toLowerCase()));
   const el=document.getElementById('clientes-list');
   if(!lista.length){el.innerHTML='<div class="empty">Sin clientes registrados</div>';return;}
-  el.innerHTML=lista.map(c=>`
-    <div class="client-card" onclick="verCliente('${c.id}')">
+  el.innerHTML=lista.map(c=>{
+    const vc=DB.ventas.filter(v=>v.cid===c.id);
+    const pendientes=vc.filter(v=>!v.entregado).length;
+    return`<div class="client-card" onclick="verCliente('${c.id}')">
       <div style="display:flex;align-items:center;gap:12px">
         <div class="avatar">${c.nombre.slice(0,2).toUpperCase()}</div>
         <div>
@@ -515,11 +699,12 @@ function renderClientes(){
           <div style="font-size:12px;color:var(--text2)">${c.zona}${c.contacto?' · '+c.contacto:''}${c.tel?' · '+c.tel:''}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        ${DB.ventas.filter(v=>v.cid===c.id).length?`<span class="badge badge-blue">${DB.ventas.filter(v=>v.cid===c.id).length} compra${DB.ventas.filter(v=>v.cid===c.id).length>1?'s':''}</span>`:''}
-        ${c.deuda>0?`<span class="badge badge-red">${fmt(c.deuda)}</span>`:'<span class="badge badge-green">Al día</span>'}
+      <div style="display:flex;align-items:center;gap:6px">
+        ${vc.length?`<span class="badge badge-blue">${vc.length} compra${vc.length>1?'s':''}</span>`:''}
+        ${pendientes>0?`<span class="badge badge-purple">${pendientes} a entregar</span>`:''}
+        ${(c.deuda||0)>0?`<span class="badge badge-red">${fmt(c.deuda)}</span>`:'<span class="badge badge-green">Al día</span>'}
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function verCliente(cid){
@@ -530,6 +715,7 @@ function verCliente(cid){
   const pc=DB.pagos.filter(p=>p.cid===cid);
   const tc=vc.reduce((a,v)=>a+v.total,0);
   const tg=vc.reduce((a,v)=>a+(v.total-v.costo),0);
+  const pendEntrega=vc.filter(v=>!v.entregado).length;
 
   document.getElementById('detalle-cliente-content').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -541,41 +727,40 @@ function verCliente(cid){
           ${cl.dir?`<div style="font-size:12px;color:var(--text3)">${cl.dir}</div>`:''}
         </div>
       </div>
+      <button class="btn" onclick="abrirEditarCliente('${cid}')"><i class="ti ti-edit"></i> Editar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
       <div class="metric"><div class="metric-label">Total comprado</div><div class="metric-val mono" style="font-size:15px">${fmt(tc)}</div></div>
-      <div class="metric"><div class="metric-label">Ganancia generada</div><div class="metric-val mono" style="font-size:15px;color:var(--green)">${fmt(tg)}</div></div>
-      <div class="metric"><div class="metric-label">Deuda</div><div class="metric-val mono" style="font-size:15px;color:${cl.deuda>0?'var(--red)':'var(--green)'}">${fmt(cl.deuda||0)}</div></div>
-      <div class="metric"><div class="metric-label">Compras</div><div class="metric-val mono" style="font-size:15px">${vc.length}</div></div>
+      <div class="metric"><div class="metric-label">Ganancia</div><div class="metric-val mono" style="font-size:15px;color:var(--green)">${fmt(tg)}</div></div>
+      <div class="metric"><div class="metric-label">Deuda</div><div class="metric-val mono" style="font-size:15px;color:${(cl.deuda||0)>0?'var(--red)':'var(--green)'}">${fmt(cl.deuda||0)}</div></div>
+      <div class="metric"><div class="metric-label">A entregar</div><div class="metric-val mono" style="font-size:15px;color:${pendEntrega>0?'var(--purple)':'var(--text2)'}">${pendEntrega}</div></div>
     </div>
     <div class="tab-bar">
-      <div class="tab active" onclick="tabCliente(this,'tab-cv')">Historial de compras</div>
-      <div class="tab" onclick="tabCliente(this,'tab-cp')">Pagos recibidos</div>
+      <div class="tab active" onclick="tabCliente(this,'tab-cv')">Compras (${vc.length})</div>
+      <div class="tab" onclick="tabCliente(this,'tab-cp')">Pagos (${pc.length})</div>
     </div>
     <div id="tab-cv">
-      ${vc.length
-        ?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cant</th><th>Precio unit</th><th>Desc</th><th>Total</th><th>Pago</th></tr></thead><tbody>
-          ${[...vc].reverse().map(v=>{
-            const p=PRODUCTOS.find(x=>x.id===v.pid);
-            const desc=p?Math.max(0,Math.round((1-v.precio/p.precio)*100)):0;
-            return`<tr>
-              <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
-              <td style="color:var(--text2)">${p?p.nombre+' ('+p.unidad+')':'-'}</td>
-              <td>${v.cant}</td>
-              <td class="mono">${fmt(v.precio)}</td>
-              <td>${desc>0?'<span class="badge badge-amber">-'+desc+'%</span>':'-'}</td>
-              <td class="mono">${fmt(v.total)}</td>
-              <td><span class="badge badge-blue">${v.pago}</span></td>
-            </tr>`}).join('')}
-          </tbody></table></div>`
-        :'<div class="empty">Este cliente no tiene compras registradas todavía</div>'}
+      ${vc.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cant</th><th>Total</th><th>Pago</th><th>Entrega</th><th>Cobro</th><th></th></tr></thead><tbody>
+        ${[...vc].reverse().map(v=>{
+          const p=PRODUCTOS.find(x=>x.id===v.pid);
+          return`<tr>
+            <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
+            <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:'-'}</td>
+            <td>${v.cant}</td>
+            <td class="mono">${fmt(v.total)}</td>
+            <td><span class="badge badge-blue">${v.pago}</span></td>
+            <td>${badgeEntrega(v.entregado,v.id)}</td>
+            <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+            <td><button class="btn-icon" onclick="abrirModalVenta('${cid}',${v.id})" title="Editar"><i class="ti ti-edit"></i></button></td>
+          </tr>`}).join('')}
+        </tbody></table></div>`
+      :'<div class="empty">Sin compras todavía</div>'}
     </div>
     <div id="tab-cp" style="display:none">
-      ${pc.length
-        ?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Monto</th><th>Forma</th></tr></thead><tbody>
-          ${[...pc].reverse().map(p=>`<tr><td class="mono" style="color:var(--text2);font-size:12px">${p.fecha}</td><td class="profit-pos">${fmt(p.monto)}</td><td>${p.forma}</td></tr>`).join('')}
-          </tbody></table></div>`
-        :'<div class="empty">Sin pagos registrados</div>'}
+      ${pc.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Monto</th><th>Forma</th></tr></thead><tbody>
+        ${[...pc].reverse().map(p=>`<tr><td class="mono" style="color:var(--text2);font-size:12px">${p.fecha}</td><td class="profit-pos">${fmt(p.monto)}</td><td>${p.forma}</td></tr>`).join('')}
+        </tbody></table></div>`
+      :'<div class="empty">Sin pagos registrados</div>'}
     </div>`;
   document.getElementById('modal-detalle-cliente').classList.add('open');
 }
