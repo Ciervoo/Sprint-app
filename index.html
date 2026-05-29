@@ -144,7 +144,7 @@ select option{background:var(--bg3);color:var(--text)}
         <h2>Compras de mercadería</h2>
         <button class="btn btn-primary" onclick="openModal('modal-compra')"><i class="ti ti-plus"></i> Registrar compra</button>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cantidad</th><th>Costo unit.</th><th>Total</th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cantidad</th><th>Costo unit.</th><th>Total</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
     </div>
 
     <div class="section" id="sec-stock">
@@ -210,7 +210,8 @@ select option{background:var(--bg3);color:var(--text)}
 <!-- MODAL COMPRA -->
 <div class="modal-bg" id="modal-compra">
   <div class="modal">
-    <h3><i class="ti ti-shopping-cart" style="margin-right:8px;color:var(--accent)"></i>Registrar compra</h3>
+    <h3 id="modal-compra-titulo"><i class="ti ti-shopping-cart" style="margin-right:8px;color:var(--accent)"></i>Registrar compra</h3>
+    <input type="hidden" id="c-id">
     <div class="form-row">
       <div class="form-group"><label>Producto</label><select id="c-producto"></select></div>
       <div class="form-group"><label>Fecha</label><input type="date" id="c-fecha"></div>
@@ -220,10 +221,10 @@ select option{background:var(--bg3);color:var(--text)}
       <div class="form-group"><label>Costo unitario ($)</label><input type="number" id="c-costo" placeholder="0"></div>
     </div>
     <div class="modal-footer">
-      <div></div>
+      <div id="c-btn-eliminar"></div>
       <div class="modal-footer-right">
         <button class="btn" onclick="closeModal('modal-compra')">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarCompra()">Registrar</button>
+        <button class="btn btn-primary" id="c-btn-guardar" onclick="guardarCompra()">Registrar</button>
       </div>
     </div>
   </div>
@@ -351,6 +352,10 @@ function openModal(id){
     document.getElementById('c-fecha').value=today();
     document.getElementById('c-cant').value=1;
     document.getElementById('c-costo').value='';
+    document.getElementById('c-id').value='';
+    document.getElementById('c-btn-eliminar').innerHTML='';
+    document.getElementById('modal-compra-titulo').innerHTML='<i class="ti ti-shopping-cart" style="margin-right:8px;color:var(--accent)"></i>Registrar compra';
+    document.getElementById('c-btn-guardar').textContent='Registrar';
   }
   document.getElementById(id).classList.add('open');
 }
@@ -542,15 +547,46 @@ function toggleCobro(id){
 }
 
 // ── COMPRA ──
+function editarCompra(id){
+  const comp=DB.compras.find(x=>x.id===id);
+  if(!comp)return;
+  fillSelect('c-producto',PRODUCTOS.map(p=>({val:p.id,label:p.nombre+' ('+p.unidad+')'})));
+  document.getElementById('c-producto').value=comp.pid;
+  document.getElementById('c-fecha').value=comp.fecha;
+  document.getElementById('c-cant').value=comp.cant;
+  document.getElementById('c-costo').value=comp.costo;
+  document.getElementById('c-id').value=id;
+  document.getElementById('modal-compra-titulo').innerHTML='<i class="ti ti-edit" style="margin-right:8px;color:var(--amber)"></i>Editar compra';
+  document.getElementById('c-btn-guardar').textContent='Guardar cambios';
+  document.getElementById('c-btn-eliminar').innerHTML=`<button class="btn btn-danger" onclick="eliminarCompra(${id})"><i class="ti ti-trash"></i> Eliminar</button>`;
+  document.getElementById('modal-compra').classList.add('open');
+}
+
+function eliminarCompra(id){
+  if(!confirm('¿Eliminar esta compra? El stock se ajustará.'))return;
+  const comp=DB.compras.find(x=>x.id===id);
+  if(comp){DB.stock[comp.pid]=Math.max(0,(DB.stock[comp.pid]||0)-comp.cant);}
+  DB.compras=DB.compras.filter(x=>x.id!==id);
+  saveDB();closeModal('modal-compra');
+  renderCompras();renderStock();renderDashboard();
+}
+
 function guardarCompra(){
   const pid=document.getElementById('c-producto').value;
   const cant=parseFloat(document.getElementById('c-cant').value)||1;
   const costo=parseFloat(document.getElementById('c-costo').value)||0;
   const fecha=document.getElementById('c-fecha').value;
-  DB.compras.push({id:Date.now(),pid,cant,costo,fecha});
+  const existingId=parseInt(document.getElementById('c-id').value)||null;
+  if(existingId){
+    // revert old stock
+    const vieja=DB.compras.find(x=>x.id===existingId);
+    if(vieja){DB.stock[vieja.pid]=Math.max(0,(DB.stock[vieja.pid]||0)-vieja.cant);}
+    DB.compras=DB.compras.filter(x=>x.id!==existingId);
+  }
+  DB.compras.push({id:existingId||Date.now(),pid,cant,costo,fecha});
   DB.stock[pid]=(DB.stock[pid]||0)+cant;
   saveDB();closeModal('modal-compra');
-  renderCompras();renderStock();
+  renderCompras();renderStock();renderDashboard();
 }
 
 // ── CLIENTE ──
@@ -675,7 +711,7 @@ function renderVentas(){
 function renderCompras(){
   document.getElementById('compras-tbody').innerHTML=DB.compras.length?[...DB.compras].reverse().map(c=>{
     const p=PRODUCTOS.find(x=>x.id===c.pid);
-    return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':'-'}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td></tr>`}).join(''):`<tr><td colspan="5" class="empty">Sin compras registradas</td></tr>`;
+    return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':'-'}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td><td><div class="actions-cell"><button class="btn-icon" onclick="editarCompra(${c.id})" title="Editar"><i class="ti ti-edit"></i></button><button class="btn-icon danger" onclick="eliminarCompra(${c.id})" title="Eliminar"><i class="ti ti-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Sin compras registradas</td></tr>`;
 }
 
 function renderStock(){
