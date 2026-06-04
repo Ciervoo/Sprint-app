@@ -93,6 +93,7 @@ tr:hover td{background:var(--bg3)}
 .highlight-box{background:rgba(91,141,238,0.07);border:1px solid rgba(91,141,238,0.2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)}
 .actions-cell{display:flex;gap:5px;align-items:center}
 .pending-row td{background:rgba(167,139,250,0.04)}
+@keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
@@ -106,6 +107,20 @@ select option{background:var(--bg3);color:var(--text)}
 .chart-wrap-sm{position:relative;height:200px}
 tr.clickable-row{cursor:pointer}
 tr.clickable-row:hover td{background:var(--bg4)}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg2);margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(91,141,238,0.05)}
+.upload-zone i{font-size:36px;color:var(--text3);display:block;margin-bottom:10px}
+.upload-zone .upload-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.upload-zone .upload-sub{font-size:12px;color:var(--text3)}
+.boleta-estado{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px}
+.boleta-estado.procesando{background:rgba(91,141,238,0.1);color:var(--accent)}
+.boleta-estado.error{background:var(--red-bg);color:var(--red)}
+.boleta-estado.ok{background:var(--green-bg);color:var(--green)}
+.preview-item-row td input{background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:12px;width:100%}
+.contab-mov-ingreso td:last-child{color:var(--green)}
+.contab-mov-egreso td:last-child{color:var(--red)}
+.contab-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:768px){.upload-zone{padding:32px 16px}.contab-summary{grid-template-columns:1fr 1fr}}
 
 /* ── RESPONSIVE MOBILE ── */
 @media(max-width:768px){
@@ -249,10 +264,12 @@ tr.clickable-row:hover td{background:var(--bg4)}
     <div class="nav-item" onclick="showSection('ventas',this)"><i class="ti ti-receipt"></i> Ventas</div>
     <div class="nav-item" onclick="showSection('compras',this)"><i class="ti ti-shopping-cart"></i> Compras</div>
     <div class="nav-item" onclick="showSection('stock',this)"><i class="ti ti-package"></i> Stock</div>
+    <div class="nav-item" onclick="showSection('boletas',this)"><i class="ti ti-file-invoice"></i> Boletas</div>
     <div class="nav-section">Comercial</div>
     <div class="nav-item" onclick="showSection('clientes',this)"><i class="ti ti-users"></i> Clientes</div>
     <div class="nav-section">Reportes</div>
     <div class="nav-item" onclick="showSection('analitica',this)"><i class="ti ti-chart-bar"></i> Analítica</div>
+    <div class="nav-item" onclick="showSection('contabilidad',this)"><i class="ti ti-report-money"></i> Contabilidad</div>
   </div>
 
   <div class="main">
@@ -319,6 +336,101 @@ tr.clickable-row:hover td{background:var(--bg4)}
       </div>
       <input class="search-bar" placeholder="Buscar por nombre o zona..." id="search-cliente" oninput="renderClientes()">
       <div id="clientes-list"></div>
+    </div>
+
+    <!-- ── BOLETAS ── -->
+    <div class="section" id="sec-boletas">
+      <div class="top-bar"><h2>Boletas</h2></div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="tabBoleta(this,'tab-boleta-compra')"><i class="ti ti-file-upload" style="font-size:12px;margin-right:5px"></i>Cargar compra</div>
+        <div class="tab" onclick="tabBoleta(this,'tab-boleta-venta')"><i class="ti ti-file-download" style="font-size:12px;margin-right:5px"></i>Generar venta</div>
+      </div>
+
+      <!-- TAB CARGA DE COMPRA -->
+      <div id="tab-boleta-compra">
+        <div class="upload-zone" id="boleta-dropzone"
+             onclick="document.getElementById('boleta-file-input').click()"
+             ondragover="boletaDragOver(event)" ondragleave="boletaDragLeave(event)" ondrop="boletaDrop(event)">
+          <i class="ti ti-file-upload"></i>
+          <div class="upload-title">Subí la boleta de compra</div>
+          <div class="upload-sub">PDF o imagen (JPG, PNG) — arrastrá o hacé clic</div>
+        </div>
+        <input type="file" id="boleta-file-input" accept=".pdf,image/*" style="display:none" onchange="procesarBoleta(this.files[0])">
+
+        <div id="boleta-estado" style="display:none"></div>
+
+        <!-- Preview de items detectados -->
+        <div id="boleta-preview" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:500">Items detectados — revisá antes de cargar</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="addItemPreviewRow()"><i class="ti ti-plus"></i> Agregar fila</button>
+              <button class="btn btn-primary" onclick="cargarCompraDesdeItems()"><i class="ti ti-database-import"></i> Cargar al stock</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Costo unit. $</th><th>Total $</th><th></th></tr></thead>
+              <tbody id="boleta-items-tbody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button class="btn" onclick="resetBoleta()"><i class="ti ti-x"></i> Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Entrada manual multi-item (alternativa si no hay API) -->
+        <div id="boleta-manual" style="margin-top:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:13px;color:var(--text2)"><i class="ti ti-keyboard" style="margin-right:4px"></i>O cargá manualmente varios productos a la vez:</span>
+            <button class="btn" onclick="addManualRow()"><i class="ti ti-plus"></i> Agregar fila</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Producto</th><th>Cantidad</th><th>Costo unit. $</th><th>Fecha</th><th></th></tr></thead>
+              <tbody id="manual-rows-tbody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" onclick="guardarManualBatch()"><i class="ti ti-database-import"></i> Registrar todas las compras</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB BOLETA DE VENTA -->
+      <div id="tab-boleta-venta" style="display:none">
+        <div class="highlight-box" style="margin-bottom:16px">
+          <i class="ti ti-info-circle" style="margin-right:6px;color:var(--accent)"></i>
+          Seleccioná una venta para generar su boleta en PDF y descargarla.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant</th><th>Total</th><th>Cobro</th><th></th></tr></thead>
+            <tbody id="boleta-ventas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTABILIDAD ── -->
+    <div class="section" id="sec-contabilidad">
+      <div class="top-bar">
+        <h2>Contabilidad</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="contab-mes" onchange="renderContabilidad()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;outline:none">
+            <option value="">Todos los meses</option>
+          </select>
+          <select id="contab-anio" onchange="renderContabilidad()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;outline:none">
+          </select>
+        </div>
+      </div>
+      <div class="contab-summary" id="contab-metrics"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto</th></tr></thead>
+          <tbody id="contab-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -455,6 +567,7 @@ tr.clickable-row:hover td{background:var(--bg4)}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const SUPABASE_URL='https://johglgodyqckaddkdwdk.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvaGdsZ29keXFja2FkZGtkd2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzOTQ0OTMsImV4cCI6MjA5NTk3MDQ5M30.qo2OWpTb3X-fdJmTWXSvfPCzKR0yqFjwnNhd73HZnVQ';
@@ -610,6 +723,8 @@ function showSection(id,el){
   if(id==='stock')renderStock();
   if(id==='clientes')renderClientes();
   if(id==='analitica')renderAnalitica();
+  if(id==='boletas'){renderBoletasVenta();initManualRows();}
+  if(id==='contabilidad'){initContabFiltros();renderContabilidad();}
 }
 
 function openModal(id){
@@ -1261,6 +1376,432 @@ function renderAnalitica(){
     options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
       plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12,color:'#9999aa'}},tooltip:tip}}
   });
+}
+
+
+// ══════════════════════════════════════════
+// ── BOLETAS ──
+// ══════════════════════════════════════════
+
+const LEER_BOLETA_URL = 'https://north-paint.vercel.app/api/leer-boleta';
+
+function tabBoleta(el,target){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['tab-boleta-compra','tab-boleta-venta'].forEach(id=>{
+    const d=document.getElementById(id);if(d)d.style.display=id===target?'block':'none';
+  });
+  if(target==='tab-boleta-venta')renderBoletasVenta();
+}
+
+// ─ Drag & drop
+function boletaDragOver(e){e.preventDefault();document.getElementById('boleta-dropzone').classList.add('drag-over');}
+function boletaDragLeave(){document.getElementById('boleta-dropzone').classList.remove('drag-over');}
+function boletaDrop(e){
+  e.preventDefault();
+  document.getElementById('boleta-dropzone').classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file)procesarBoleta(file);
+}
+
+// ─ Estado visual
+function setBoletaEstado(tipo,msg){
+  const el=document.getElementById('boleta-estado');
+  if(!msg){el.style.display='none';return;}
+  el.style.display='flex';
+  el.className='boleta-estado '+tipo;
+  const spinner=tipo==='procesando'?'<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>':'';
+  el.innerHTML=spinner+' '+msg;
+}
+
+// ─ Procesar boleta via API
+async function procesarBoleta(file){
+  if(!file)return;
+  document.getElementById('boleta-preview').style.display='none';
+  setBoletaEstado('procesando','Analizando boleta con IA...');
+
+  const fd=new FormData();
+  fd.append('file',file);
+
+  try{
+    const res=await fetch(LEER_BOLETA_URL,{method:'POST',body:fd});
+    const data=await res.json();
+
+    if(!res.ok||data.error){
+      setBoletaEstado('error','Error: '+(data.error||'Respuesta inválida del servidor'));
+      return;
+    }
+
+    if(!data.items||!data.items.length){
+      setBoletaEstado('error','No se detectaron productos en la boleta. Usá la carga manual.');
+      return;
+    }
+
+    setBoletaEstado('ok',`${data.items.length} producto${data.items.length>1?'s':''} detectado${data.items.length>1?'s':''}`);
+    renderBoletaPreview(data.items);
+  }catch(e){
+    setBoletaEstado('error','No se pudo conectar con el servidor. Verificá tu conexión.');
+    console.error(e);
+  }
+  // Limpiar el input para poder subir el mismo archivo de nuevo
+  document.getElementById('boleta-file-input').value='';
+}
+
+// ─ Preview de items detectados
+function renderBoletaPreview(items){
+  const tbody=document.getElementById('boleta-items-tbody');
+  tbody.innerHTML=items.map((item,i)=>{
+    const pidOpts=PRODUCTOS.map(p=>`<option value="${p.id}"${p.id===item.pid?' selected':''}>${p.nombre} (${p.unidad})</option>`).join('');
+    const pidOtro=item.pid==='OTRO'?`<option value="OTRO" selected>Otro / sin mapear</option>`:'';
+    const cant=item.cantidad||1;
+    const costo=item.costoUnitario||0;
+    return`<tr class="preview-item-row" data-i="${i}">
+      <td><select class="pi-pid" onchange="recalcPreviewRow(${i})" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;min-width:200px">
+        ${pidOtro}${pidOpts}
+      </select></td>
+      <td style="color:var(--text2);font-size:12px" id="pi-unidad-${i}">${item.unidad||'-'}</td>
+      <td><input class="pi-cant" type="number" value="${cant}" min="0.1" step="0.1" oninput="recalcPreviewRow(${i})" style="width:70px"></td>
+      <td><input class="pi-costo" type="number" value="${costo}" min="0" oninput="recalcPreviewRow(${i})" style="width:100px"></td>
+      <td class="mono pi-total-${i}" style="font-size:12px">${fmt(cant*costo)}</td>
+      <td><button class="btn-icon danger" onclick="removePreviewRow(${i})"><i class="ti ti-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('boleta-preview').style.display='block';
+}
+
+function recalcPreviewRow(i){
+  const rows=document.getElementById('boleta-items-tbody').querySelectorAll('tr');
+  rows.forEach(row=>{
+    if(row.dataset.i!=i)return;
+    const cant=parseFloat(row.querySelector('.pi-cant').value)||0;
+    const costo=parseFloat(row.querySelector('.pi-costo').value)||0;
+    const totalEl=document.querySelector('.pi-total-'+i);
+    if(totalEl)totalEl.textContent=fmt(cant*costo);
+    const pid=row.querySelector('.pi-pid').value;
+    const p=PRODUCTOS.find(x=>x.id===pid);
+    const unEl=document.getElementById('pi-unidad-'+i);
+    if(unEl&&p)unEl.textContent=p.unidad;
+  });
+}
+
+function removePreviewRow(i){
+  const row=document.getElementById('boleta-items-tbody').querySelector(`tr[data-i="${i}"]`);
+  if(row)row.remove();
+}
+
+function addItemPreviewRow(){
+  const tbody=document.getElementById('boleta-items-tbody');
+  const i=Date.now();
+  const pidOpts=PRODUCTOS.map(p=>`<option value="${p.id}">${p.nombre} (${p.unidad})</option>`).join('');
+  tbody.insertAdjacentHTML('beforeend',`<tr class="preview-item-row" data-i="${i}">
+    <td><select class="pi-pid" onchange="recalcPreviewRow(${i})" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;min-width:200px">${pidOpts}</select></td>
+    <td style="color:var(--text2);font-size:12px" id="pi-unidad-${i}">-</td>
+    <td><input class="pi-cant" type="number" value="1" min="0.1" step="0.1" oninput="recalcPreviewRow(${i})" style="width:70px"></td>
+    <td><input class="pi-costo" type="number" value="0" min="0" oninput="recalcPreviewRow(${i})" style="width:100px"></td>
+    <td class="mono pi-total-${i}" style="font-size:12px">$0</td>
+    <td><button class="btn-icon danger" onclick="removePreviewRow(${i})"><i class="ti ti-trash"></i></button></td>
+  </tr>`);
+}
+
+// ─ Guardar compras desde preview de items
+async function cargarCompraDesdeItems(){
+  const rows=[...document.getElementById('boleta-items-tbody').querySelectorAll('tr.preview-item-row')];
+  if(!rows.length){alert('No hay items para cargar.');return;}
+
+  const hoy=new Date().toISOString().slice(0,10);
+  let errores=0;
+  let ok=0;
+
+  for(const row of rows){
+    const pid=row.querySelector('.pi-pid').value;
+    if(pid==='OTRO')continue; // saltar sin mapeo
+    const cant=parseFloat(row.querySelector('.pi-cant').value)||0;
+    const costo=parseFloat(row.querySelector('.pi-costo').value)||0;
+    if(cant<=0)continue;
+
+    const nc={id:Date.now()+Math.random(),pid,cant,costo,fecha:hoy};
+    try{
+      const {error}=await sb.from('compras').insert(nc);
+      if(error)throw error;
+      DB.compras.push(nc);
+      const ns2=(DB.stock[pid]||0)+cant;
+      await sb.from('stock').upsert({pid,cantidad:ns2},{onConflict:'pid'});
+      DB.stock[pid]=ns2;
+      ok++;
+    }catch(e){errores++;console.error(e);}
+  }
+
+  if(errores>0)alert(`⚠️ Se cargaron ${ok} compras pero ${errores} fallaron.`);
+  else{
+    setBoletaEstado('ok',`✅ ${ok} compra${ok!==1?'s':''} cargada${ok!==1?'s':''} al stock`);
+    document.getElementById('boleta-preview').style.display='none';
+    renderStock();renderDashboard();renderCompras();
+  }
+}
+
+function resetBoleta(){
+  document.getElementById('boleta-preview').style.display='none';
+  setBoletaEstado('','');
+}
+
+// ── CARGA MANUAL MULTI-ITEM ──
+function initManualRows(){
+  const tbody=document.getElementById('manual-rows-tbody');
+  if(tbody.children.length===0)addManualRow();
+}
+
+function addManualRow(){
+  const tbody=document.getElementById('manual-rows-tbody');
+  const i=Date.now();
+  const hoy=new Date().toISOString().slice(0,10);
+  const pidOpts=PRODUCTOS.map(p=>`<option value="${p.id}">${p.nombre} (${p.unidad})</option>`).join('');
+  tbody.insertAdjacentHTML('beforeend',`<tr data-i="${i}">
+    <td><select style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;min-width:200px">${pidOpts}</select></td>
+    <td><input type="number" value="1" min="0.1" step="0.1" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif"></td>
+    <td><input type="number" value="" placeholder="0" min="0" style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif"></td>
+    <td><input type="date" value="${hoy}" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif"></td>
+    <td><button class="btn-icon danger" onclick="this.closest('tr').remove()"><i class="ti ti-trash"></i></button></td>
+  </tr>`);
+}
+
+async function guardarManualBatch(){
+  const rows=[...document.getElementById('manual-rows-tbody').querySelectorAll('tr')];
+  if(!rows.length){alert('No hay filas para guardar.');return;}
+  let ok=0,errores=0;
+  for(const row of rows){
+    const inputs=row.querySelectorAll('input,select');
+    const pid=inputs[0].value;
+    const cant=parseFloat(inputs[1].value)||0;
+    const costo=parseFloat(inputs[2].value)||0;
+    const fecha=inputs[3].value||new Date().toISOString().slice(0,10);
+    if(cant<=0||!pid)continue;
+    const nc={id:Date.now()+Math.random(),pid,cant,costo,fecha};
+    try{
+      const {error}=await sb.from('compras').insert(nc);
+      if(error)throw error;
+      DB.compras.push(nc);
+      const ns=(DB.stock[pid]||0)+cant;
+      await sb.from('stock').upsert({pid,cantidad:ns},{onConflict:'pid'});
+      DB.stock[pid]=ns;
+      ok++;
+    }catch(e){errores++;console.error(e);}
+  }
+  if(errores>0)alert(`⚠️ ${ok} cargadas, ${errores} fallaron.`);
+  else{
+    alert(`✅ ${ok} compra${ok!==1?'s':''} registrada${ok!==1?'s':''} correctamente.`);
+    document.getElementById('manual-rows-tbody').innerHTML='';
+    addManualRow();
+    renderStock();renderDashboard();renderCompras();
+  }
+}
+
+// ── BOLETA DE VENTA (PDF) ──
+function renderBoletasVenta(){
+  const tbody=document.getElementById('boleta-ventas-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=[...DB.ventas].reverse().slice(0,50).map(v=>{
+    const cl=DB.clientes.find(c=>c.id===v.cid);
+    const p=PRODUCTOS.find(x=>x.id===v.pid);
+    return`<tr>
+      <td class="mono" style="font-size:12px;color:var(--text2)">${v.fecha}</td>
+      <td>${cl?cl.nombre:'-'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${p?p.nombre:v.pid}</td>
+      <td>${v.cant}</td>
+      <td class="mono">${fmt(v.total)}</td>
+      <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+      <td><button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="generarBoletaPDF(${v.id})">
+        <i class="ti ti-file-download"></i> PDF
+      </button></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7" class="empty">Sin ventas</td></tr>`;
+}
+
+function generarBoletaPDF(vid){
+  const v=DB.ventas.find(x=>x.id===vid);
+  if(!v){alert('Venta no encontrada');return;}
+  const cl=DB.clientes.find(c=>c.id===v.cid);
+  const p=PRODUCTOS.find(x=>x.id===v.pid);
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+
+  // Paleta
+  const AZUL=[40,80,180];
+  const GRIS=[100,100,110];
+  const CLARO=[240,242,248];
+  const NEGRO=[20,20,25];
+
+  // ─ Encabezado
+  doc.setFillColor(...AZUL);
+  doc.rect(0,0,210,28,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.text('DISTRIBUIDORA NORTH PAINT',14,12);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Colombres 785, M.J. Haedo, Buenos Aires  |  WhatsApp: 11 6859-2507  |  distribuidoranorthpaint@gmail.com',14,20);
+
+  // ─ Título boleta
+  doc.setFillColor(...CLARO);
+  doc.rect(0,28,210,16,'F');
+  doc.setTextColor(...AZUL);
+  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('COMPROBANTE DE VENTA',14,39);
+  doc.setTextColor(...GRIS);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  const nro='N° '+String(vid).slice(-6).padStart(6,'0');
+  doc.text(nro,196,39,{align:'right'});
+
+  // ─ Datos del cliente
+  doc.setTextColor(...NEGRO);
+  doc.setFontSize(10);doc.setFont('helvetica','bold');
+  doc.text('CLIENTE',14,54);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
+  doc.text(cl?cl.nombre:'—',14,61);
+  if(cl&&cl.zona)doc.text(cl.zona+(cl.dir?' — '+cl.dir:''),14,67);
+  if(cl&&cl.tel)doc.text('Tel: '+cl.tel,14,73);
+
+  // ─ Fecha
+  doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('FECHA',140,54);
+  doc.setFont('helvetica','normal');
+  doc.text(v.fecha,140,61);
+  doc.text('Forma de pago: '+v.pago,140,67);
+
+  // ─ Tabla de items
+  doc.setFillColor(...AZUL);
+  doc.rect(14,82,182,8,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+  doc.text('PRODUCTO',16,87.5);
+  doc.text('UNIDAD',100,87.5);
+  doc.text('CANT',130,87.5,{align:'right'});
+  doc.text('PRECIO UNIT.',160,87.5,{align:'right'});
+  doc.text('TOTAL',194,87.5,{align:'right'});
+
+  doc.setFillColor(248,249,252);
+  doc.rect(14,90,182,10,'F');
+  doc.setTextColor(...NEGRO);doc.setFontSize(9);doc.setFont('helvetica','normal');
+  const prodNombre=p?p.nombre:v.pid;
+  doc.text(prodNombre.slice(0,45),16,96.5);
+  doc.text(p?p.unidad:'—',100,96.5);
+  doc.text(String(v.cant),130,96.5,{align:'right'});
+  doc.text('$'+Math.round(v.precio).toLocaleString('es-AR'),160,96.5,{align:'right'});
+  doc.text('$'+Math.round(v.total).toLocaleString('es-AR'),194,96.5,{align:'right'});
+
+  // ─ Totales
+  doc.setDrawColor(...GRIS);
+  doc.line(14,106,196,106);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.setTextColor(...AZUL);
+  doc.text('TOTAL',155,115,{align:'right'});
+  doc.setFontSize(13);
+  doc.text('$'+Math.round(v.total).toLocaleString('es-AR'),194,115,{align:'right'});
+
+  // ─ Estado de cobro
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.setTextColor(...GRIS);
+  const cobStatus=v.cobrado>=v.total?'✓ COBRADO':'PENDIENTE DE COBRO';
+  doc.text('Estado: '+cobStatus,14,115);
+
+  if(v.notas){
+    doc.setFontSize(8);
+    doc.text('Notas: '+v.notas,14,124);
+  }
+
+  // ─ Footer
+  doc.setFillColor(...AZUL);
+  doc.rect(0,278,210,19,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(8);
+  doc.text('¡Gracias por su compra! | @distribuidora.northpaint',105,286,{align:'center'});
+  doc.text('Este comprobante no tiene validez fiscal.',105,292,{align:'center'});
+
+  const nombreArchivo=`Boleta_NorthPaint_${nro.replace('N° ','')}_${v.fecha}.pdf`;
+  doc.save(nombreArchivo);
+}
+
+// ══════════════════════════════════════════
+// ── CONTABILIDAD ──
+// ══════════════════════════════════════════
+
+function initContabFiltros(){
+  const mesEl=document.getElementById('contab-mes');
+  const anioEl=document.getElementById('contab-anio');
+  if(!mesEl||!anioEl)return;
+
+  // Años disponibles
+  const anios=new Set();
+  DB.ventas.forEach(v=>anios.add(v.fecha.slice(0,4)));
+  DB.compras.forEach(c=>anios.add(c.fecha.slice(0,4)));
+  anios.add(new Date().getFullYear().toString());
+
+  const anioAct=new Date().getFullYear().toString();
+  anioEl.innerHTML=[...anios].sort().reverse()
+    .map(a=>`<option value="${a}"${a===anioAct?' selected':''}>${a}</option>`).join('');
+
+  const meses=[
+    {v:'',l:'Todos los meses'},{v:'01',l:'Enero'},{v:'02',l:'Febrero'},{v:'03',l:'Marzo'},
+    {v:'04',l:'Abril'},{v:'05',l:'Mayo'},{v:'06',l:'Junio'},{v:'07',l:'Julio'},
+    {v:'08',l:'Agosto'},{v:'09',l:'Septiembre'},{v:'10',l:'Octubre'},{v:'11',l:'Noviembre'},{v:'12',l:'Diciembre'}
+  ];
+  const mesAct=String(new Date().getMonth()+1).padStart(2,'0');
+  mesEl.innerHTML=meses.map(m=>`<option value="${m.v}"${m.v===mesAct?' selected':''}>${m.l}</option>`).join('');
+}
+
+function renderContabilidad(){
+  const mes=document.getElementById('contab-mes')?.value||'';
+  const anio=document.getElementById('contab-anio')?.value||new Date().getFullYear().toString();
+  const prefix=anio+(mes?'-'+mes:'');
+
+  // Filtrar movimientos
+  const ventas=DB.ventas.filter(v=>v.fecha.startsWith(prefix));
+  const compras=DB.compras.filter(c=>c.fecha.startsWith(prefix));
+
+  const totalIngresos=ventas.reduce((a,v)=>a+Number(v.cobrado||0),0);
+  const ingresosFacturados=ventas.reduce((a,v)=>a+Number(v.total),0);
+  const totalEgresos=compras.reduce((a,c)=>a+(Number(c.costo)*Number(c.cant)),0);
+  const ganancia=ingresosFacturados-totalEgresos;
+  const margen=ingresosFacturados>0?Math.round((ganancia/ingresosFacturados)*100):0;
+
+  // Cards
+  document.getElementById('contab-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Ingresos (cobrados)</div><div class="metric-val" style="color:var(--green)">${fmt(totalIngresos)}</div></div>
+    <div class="metric"><div class="metric-label">Facturado</div><div class="metric-val">${fmt(ingresosFacturados)}</div></div>
+    <div class="metric"><div class="metric-label">Egresos (compras)</div><div class="metric-val" style="color:var(--red)">${fmt(totalEgresos)}</div></div>
+    <div class="metric"><div class="metric-label">Ganancia bruta</div><div class="metric-val" style="color:${ganancia>=0?'var(--green)':'var(--red)'}">${fmt(ganancia)} <span style="font-size:13px;font-weight:400">(${margen}%)</span></div></div>`;
+
+  // Movimientos combinados y ordenados
+  const movs=[];
+  ventas.forEach(v=>{
+    const cl=DB.clientes.find(c=>c.id===v.cid);
+    const p=PRODUCTOS.find(x=>x.id===v.pid);
+    movs.push({
+      fecha:v.fecha,
+      tipo:'ingreso',
+      desc:`Venta · ${cl?cl.nombre:'—'} — ${p?p.nombre.slice(0,30):v.pid}`,
+      monto:Number(v.total),
+      cobrado:Number(v.cobrado||0)
+    });
+  });
+  compras.forEach(c=>{
+    const p=PRODUCTOS.find(x=>x.id===c.pid);
+    movs.push({
+      fecha:c.fecha,
+      tipo:'egreso',
+      desc:`Compra · ${p?p.nombre.slice(0,35):c.pid}`,
+      monto:Number(c.costo)*Number(c.cant),
+      cobrado:null
+    });
+  });
+  movs.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  document.getElementById('contab-tbody').innerHTML=movs.length
+    ?movs.map(m=>`<tr class="contab-mov-${m.tipo}">
+        <td class="mono" style="font-size:12px;color:var(--text2)">${m.fecha}</td>
+        <td>${m.tipo==='ingreso'
+          ?'<span class="badge badge-green"><i class="ti ti-arrow-up" style="font-size:10px"></i> Ingreso</span>'
+          :'<span class="badge badge-red"><i class="ti ti-arrow-down" style="font-size:10px"></i> Egreso</span>'}</td>
+        <td style="color:var(--text2)">${m.desc}${m.cobrado!==null&&m.cobrado<m.monto?' <span class="badge badge-amber" style="font-size:10px">pend. cobro</span>':''}</td>
+        <td class="mono" style="font-weight:500">${m.tipo==='ingreso'?'+':'-'} ${fmt(m.monto)}</td>
+      </tr>`).join('')
+    :`<tr><td colspan="4" class="empty">Sin movimientos en el período seleccionado</td></tr>`;
 }
 
 initApp();
