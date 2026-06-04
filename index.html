@@ -1506,23 +1506,25 @@ function parsearTextoFactura(texto){
     const ln=norm(linea);
     if(ln.length<3)continue;
 
+    // ── Ignorar líneas de catalizador (vienen con el kit, no son stock separado)
+    if(/cataliz|catalizad/.test(ln))continue;
+
     for(const [pid,regex] of REGLAS){
       if(!regex.test(ln))continue;
       if(yaAgregados.has(pid+li))continue;
 
-      // Buscar números en la línea y las 2 siguientes (a veces qty/precio están en líneas separadas)
+      // Buscar números en la línea y las 2 siguientes para detectar cantidad
       const contexto=[linea,lineas[li+1]||'',lineas[li+2]||''].join(' ');
       const ns=nums(contexto);
 
-      // Separar candidatos: cantidad = chico (0.5–50), costo = grande (>500)
+      // Cantidad = número chico (0.5–50) que aparece en la factura
       const cantCand=ns.filter(n=>n>=0.5&&n<=50);
-      const costoCand=ns.filter(n=>n>=500);
-
       const cantidad=cantCand.length?cantCand[0]:1;
-      // Precio unitario = el más chico de los grandes (evitar el total)
-      const costoUnitario=costoCand.length?Math.min(...costoCand):0;
 
+      // Costo → siempre del catálogo de Sprint, no de la factura
       const p=PRODUCTOS.find(x=>x.id===pid);
+      const costoUnitario=p?p.costo:0;
+
       items.push({
         pid,
         nombre:p?p.nombre:pid,
