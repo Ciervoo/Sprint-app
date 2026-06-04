@@ -98,6 +98,14 @@ tr:hover td{background:var(--bg3)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
 select option{background:var(--bg3);color:var(--text)}
 #migration-banner{display:none;align-items:center;gap:12px;padding:8px 24px;background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);font-size:13px;flex-shrink:0}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-wide{grid-column:1/-1}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.chart-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px}
+.chart-wrap{position:relative;height:230px}
+.chart-wrap-sm{position:relative;height:200px}
+tr.clickable-row{cursor:pointer}
+tr.clickable-row:hover td{background:var(--bg4)}
 
 /* ── RESPONSIVE MOBILE ── */
 @media(max-width:768px){
@@ -193,6 +201,12 @@ select option{background:var(--bg3);color:var(--text)}
   /* Busqueda */
   .search-bar{padding:12px 14px;font-size:16px}
 
+  /* Charts responsive */
+  .charts-grid{grid-template-columns:1fr}
+  .chart-wide{grid-column:auto}
+  .chart-wrap{height:180px}
+  .chart-wrap-sm{height:160px}
+
   /* Migration banner */
   #migration-banner{flex-wrap:wrap;padding:10px 12px;gap:8px}
 
@@ -237,6 +251,8 @@ select option{background:var(--bg3);color:var(--text)}
     <div class="nav-item" onclick="showSection('stock',this)"><i class="ti ti-package"></i> Stock</div>
     <div class="nav-section">Comercial</div>
     <div class="nav-item" onclick="showSection('clientes',this)"><i class="ti ti-users"></i> Clientes</div>
+    <div class="nav-section">Reportes</div>
+    <div class="nav-item" onclick="showSection('analitica',this)"><i class="ti ti-chart-bar"></i> Analítica</div>
   </div>
 
   <div class="main">
@@ -267,6 +283,33 @@ select option{background:var(--bg3);color:var(--text)}
     <div class="section" id="sec-stock">
       <div class="top-bar"><h2>Stock actual</h2></div>
       <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Unidad</th><th>Stock</th><th>Costo unit.</th><th>Precio venta</th><th>Margen</th></tr></thead><tbody id="stock-tbody"></tbody></table></div>
+    </div>
+
+    <div class="section" id="sec-analitica">
+      <div class="top-bar"><h2>Analítica</h2></div>
+      <div id="charts-empty" class="empty" style="display:none">Sin ventas registradas aún</div>
+      <div class="charts-grid" id="charts-grid">
+        <div class="chart-card chart-wide">
+          <div class="chart-title">Ventas y ganancia por mes (últimos 6 meses)</div>
+          <div class="chart-wrap"><canvas id="chart-meses"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top productos por facturación</div>
+          <div class="chart-wrap"><canvas id="chart-productos"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top clientes por facturación</div>
+          <div class="chart-wrap"><canvas id="chart-clientes"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Estado de cobros</div>
+          <div class="chart-wrap-sm"><canvas id="chart-cobros"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Origen de ventas</div>
+          <div class="chart-wrap-sm"><canvas id="chart-origen"></canvas></div>
+        </div>
+      </div>
     </div>
 
     <div class="section" id="sec-clientes">
@@ -410,6 +453,7 @@ select option{background:var(--bg3);color:var(--text)}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://johglgodyqckaddkdwdk.supabase.co';
@@ -564,6 +608,7 @@ function showSection(id,el){
   if(id==='compras')renderCompras();
   if(id==='stock')renderStock();
   if(id==='clientes')renderClientes();
+  if(id==='analitica')renderAnalitica();
 }
 
 function openModal(id){
@@ -1008,8 +1053,8 @@ function renderVentas(){
     const cl=DB.clientes.find(c=>c.id===v.cid);
     const p=PRODUCTOS.find(x=>x.id===v.pid);
     const desc=p?Math.max(0,Math.round((1-v.precio/p.precio)*100)):0;
-    const rowClass=!v.entregado?'class="pending-row"':'';
-    return`<tr ${rowClass}>
+    const rowClass=!v.entregado?'pending-row':'';
+    return`<tr class="clickable-row ${rowClass}" onclick="if(!event.target.closest('.badge-clickable,.btn-icon'))abrirModalVenta(null,${v.id})">
       <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
       <td>${cl?cl.nombre:'-'}</td>
       <td style="color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</td>
@@ -1031,7 +1076,7 @@ function renderVentas(){
 function renderCompras(){
   document.getElementById('compras-tbody').innerHTML=DB.compras.length?[...DB.compras].reverse().map(c=>{
     const p=PRODUCTOS.find(x=>x.id===c.pid);
-    return`<tr><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':c.pid}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td><td><div class="actions-cell"><button class="btn-icon" onclick="editarCompra(${c.id})" title="Editar"><i class="ti ti-edit"></i></button><button class="btn-icon danger" onclick="eliminarCompra(${c.id})" title="Eliminar"><i class="ti ti-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Sin compras registradas</td></tr>`;
+    return`<tr class="clickable-row" onclick="if(!event.target.closest('.btn-icon'))editarCompra(${c.id})"><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':c.pid}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td><td><div class="actions-cell"><button class="btn-icon" onclick="editarCompra(${c.id})" title="Editar"><i class="ti ti-edit"></i></button><button class="btn-icon danger" onclick="eliminarCompra(${c.id})" title="Eliminar"><i class="ti ti-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Sin compras registradas</td></tr>`;
 }
 
 function renderStock(){
@@ -1127,6 +1172,94 @@ function tabCliente(el,target){
   el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   ['tab-cv','tab-cp'].forEach(id=>{const d=document.getElementById(id);if(d)d.style.display=id===target?'block':'none';});
+}
+
+// ── ANALÍTICA ──
+let charts={};
+function renderAnalitica(){
+  if(!DB.ventas.length){
+    document.getElementById('charts-empty').style.display='block';
+    document.getElementById('charts-grid').style.display='none';
+    return;
+  }
+  document.getElementById('charts-empty').style.display='none';
+  document.getElementById('charts-grid').style.display='grid';
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  charts={};
+
+  Chart.defaults.color='#9999aa';
+  Chart.defaults.borderColor='#2e2e36';
+  Chart.defaults.font.family="'DM Sans',sans-serif";
+  Chart.defaults.font.size=12;
+
+  const tip={
+    backgroundColor:'#1e1e22',borderColor:'#3a3a44',borderWidth:1,
+    titleColor:'#f0f0f2',bodyColor:'#9999aa',
+    callbacks:{label:ctx=>` $${Math.round(ctx.raw).toLocaleString('es-AR')}`}
+  };
+  const fmtAxis=v=>'$'+(v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v);
+
+  // 1. Ventas y ganancia por mes (últimos 6 meses)
+  const meses=[];
+  for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);meses.push(d.toISOString().slice(0,7));}
+  const mesLabels=meses.map(m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1).toLocaleString('es-AR',{month:'short',year:'2-digit'});});
+  const mesVentas=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m).reduce((a,v)=>a+Number(v.total),0));
+  const mesGanancia=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m).reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0));
+  charts.meses=new Chart(document.getElementById('chart-meses'),{
+    type:'bar',
+    data:{labels:mesLabels,datasets:[
+      {label:'Ventas',data:mesVentas,backgroundColor:'rgba(91,141,238,0.75)',borderWidth:0,borderRadius:4},
+      {label:'Ganancia',data:mesGanancia,backgroundColor:'rgba(74,222,128,0.75)',borderWidth:0,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:12,padding:16,color:'#9999aa'}},tooltip:tip},
+      scales:{x:{grid:{color:'#2e2e36'},ticks:{color:'#9999aa'}},y:{grid:{color:'#2e2e36'},ticks:{color:'#9999aa',callback:fmtAxis}}}}
+  });
+
+  // 2. Top productos
+  const prodMap={};
+  DB.ventas.forEach(v=>{const p=PRODUCTOS.find(x=>x.id===v.pid);const n=p?p.nombre.replace(/kit\s/i,'').slice(0,24):v.pid;prodMap[n]=(prodMap[n]||0)+Number(v.total);});
+  const topProd=Object.entries(prodMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const pal=['rgba(91,141,238,.8)','rgba(74,222,128,.8)','rgba(167,139,250,.8)','rgba(251,191,36,.8)','rgba(248,113,113,.8)','rgba(91,141,238,.5)','rgba(74,222,128,.5)','rgba(167,139,250,.5)'];
+  charts.productos=new Chart(document.getElementById('chart-productos'),{
+    type:'bar',
+    data:{labels:topProd.map(x=>x[0]),datasets:[{label:'Facturación',data:topProd.map(x=>x[1]),backgroundColor:pal,borderWidth:0,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:tip},
+      scales:{x:{grid:{color:'#2e2e36'},ticks:{color:'#9999aa',callback:fmtAxis}},y:{grid:{display:false},ticks:{color:'#f0f0f2',font:{size:11}}}}}
+  });
+
+  // 3. Top clientes
+  const clMap={};
+  DB.ventas.forEach(v=>{const cl=DB.clientes.find(c=>c.id===v.cid);const n=cl?cl.nombre.slice(0,20):'Sin cliente';clMap[n]=(clMap[n]||0)+Number(v.total);});
+  const topCl=Object.entries(clMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  charts.clientes=new Chart(document.getElementById('chart-clientes'),{
+    type:'bar',
+    data:{labels:topCl.map(x=>x[0]),datasets:[{label:'Facturación',data:topCl.map(x=>x[1]),backgroundColor:'rgba(167,139,250,.75)',borderWidth:0,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:tip},
+      scales:{x:{grid:{color:'#2e2e36'},ticks:{color:'#9999aa',callback:fmtAxis}},y:{grid:{display:false},ticks:{color:'#f0f0f2',font:{size:11}}}}}
+  });
+
+  // 4. Estado cobros (donut)
+  const cobrado=DB.ventas.reduce((a,v)=>a+Number(v.cobrado),0);
+  const pendCobro=DB.ventas.reduce((a,v)=>a+Math.max(0,Number(v.total)-Number(v.cobrado)),0);
+  charts.cobros=new Chart(document.getElementById('chart-cobros'),{
+    type:'doughnut',
+    data:{labels:['Cobrado','Pendiente'],datasets:[{data:[cobrado,pendCobro],backgroundColor:['rgba(74,222,128,.8)','rgba(251,191,36,.8)'],borderColor:['#4ade80','#fbbf24'],borderWidth:2,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12,color:'#9999aa'}},tooltip:tip}}
+  });
+
+  // 5. Origen de ventas (donut)
+  const nWeb=DB.ventas.filter(v=>v.origen==='web').reduce((a,v)=>a+Number(v.total),0);
+  const nManual=DB.ventas.filter(v=>v.origen!=='web').reduce((a,v)=>a+Number(v.total),0);
+  charts.origen=new Chart(document.getElementById('chart-origen'),{
+    type:'doughnut',
+    data:{labels:['Web','Manual'],datasets:[{data:[nWeb,nManual],backgroundColor:['rgba(91,141,238,.8)','rgba(153,153,170,.4)'],borderColor:['#5b8dee','#555566'],borderWidth:2,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12,color:'#9999aa'}},tooltip:tip}}
+  });
 }
 
 initApp();
