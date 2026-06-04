@@ -98,6 +98,33 @@ tr:hover td{background:var(--bg3)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
 select option{background:var(--bg3);color:var(--text)}
 #migration-banner{display:none;align-items:center;gap:12px;padding:8px 24px;background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);font-size:13px;flex-shrink:0}
+
+/* ── RESPONSIVE MOBILE ── */
+@media(max-width:768px){
+  body{overflow:auto}
+  .topbar{padding:0 14px}
+  .logo-sub{display:none}
+  .layout{flex-direction:column;overflow:visible}
+  .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:0;border-right:none;border-bottom:1px solid var(--border);height:auto;flex-shrink:0}
+  .nav-section{display:none}
+  .nav-item{flex-direction:column;gap:3px;padding:10px 12px;margin:0;border-radius:0;font-size:10px;min-width:56px;text-align:center;border-bottom:3px solid transparent}
+  .nav-item.active{background:transparent;border-bottom-color:var(--accent)}
+  .nav-item i{font-size:20px}
+  .main{padding:14px;overflow:visible}
+  .metrics{grid-template-columns:1fr 1fr;gap:8px}
+  .metric{padding:12px}
+  .metric-val{font-size:18px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:600px}
+  .top-bar{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:14px}
+  .modal{width:calc(100vw - 24px);padding:16px;border-radius:10px}
+  .modal-wide{width:calc(100vw - 24px)}
+  .form-row{grid-template-columns:1fr}
+  .client-card{flex-direction:column;align-items:flex-start;gap:8px}
+  .client-card > div:last-child{flex-wrap:wrap}
+  #migration-banner{flex-wrap:wrap;padding:10px 14px}
+  .section.active{display:block}
+}
 </style>
 </head>
 <body>
@@ -399,25 +426,56 @@ function checkMigracion(){
 async function migrarDesdeLocal(){
   const banner=document.getElementById('migration-banner');
   try{
-    const old=JSON.parse(localStorage.getItem('sprint-db'));
-    if(!old){banner.style.display='none';return;}
+    const raw=localStorage.getItem('sprint-db');
+    if(!raw){banner.style.display='none';return;}
+    const old=JSON.parse(raw);
     banner.innerHTML='<span style="color:var(--text2)">Migrando datos a Supabase...</span>';
-    if((old.clientes||[]).length)await sb.from('clientes').upsert(old.clientes,{onConflict:'id'});
-    if((old.ventas||[]).length){
-      const vs=(old.ventas||[]).map(v=>({...v,entregado:v.entregado??true,origen:v.origen||'manual'}));
-      await sb.from('ventas').upsert(vs,{onConflict:'id'});
+
+    // 1. Clientes primero (referenciados por ventas y pagos)
+    if((old.clientes||[]).length){
+      const {error}=await sb.from('clientes').upsert(old.clientes,{onConflict:'id'});
+      if(error)throw new Error('clientes: '+error.message);
     }
-    if((old.compras||[]).length)await sb.from('compras').upsert(old.compras,{onConflict:'id'});
-    if((old.pagos||[]).length)await sb.from('pagos').upsert(old.pagos,{onConflict:'id'});
-    const stockEntries=Object.entries(old.stock||{}).map(([pid,cantidad])=>({pid,cantidad}));
-    if(stockEntries.length)await sb.from('stock').upsert(stockEntries,{onConflict:'pid'});
+    // 2. Ventas
+    if((old.ventas||[]).length){
+      const vs=(old.ventas||[]).map(v=>({
+        id:v.id,cid:v.cid,pid:v.pid,cant:v.cant,precio:v.precio,
+        total:v.total,costo:v.costo||0,pago:v.pago||'Efectivo',
+        fecha:v.fecha,notas:v.notas||'',cobrado:v.cobrado||0,
+        entregado:v.entregado??true,origen:'manual'
+      }));
+      const {error}=await sb.from('ventas').upsert(vs,{onConflict:'id'});
+      if(error)throw new Error('ventas: '+error.message);
+    }
+    // 3. Compras
+    if((old.compras||[]).length){
+      const {error}=await sb.from('compras').upsert(old.compras,{onConflict:'id'});
+      if(error)throw new Error('compras: '+error.message);
+    }
+    // 4. Pagos
+    if((old.pagos||[]).length){
+      const {error}=await sb.from('pagos').upsert(old.pagos,{onConflict:'id'});
+      if(error)throw new Error('pagos: '+error.message);
+    }
+    // 5. Stock
+    const stockEntries=Object.entries(old.stock||{}).map(([pid,cantidad])=>({pid,cantidad:Number(cantidad)}));
+    if(stockEntries.length){
+      const {error}=await sb.from('stock').upsert(stockEntries,{onConflict:'pid'});
+      if(error)throw new Error('stock: '+error.message);
+    }
+
+    // Solo borramos localStorage si TODO salió bien
     localStorage.removeItem('sprint-db');
     banner.style.display='none';
     await initApp();
-    alert('Migración completada. Todos tus datos ahora están en la nube.');
+    alert('✅ Migración completada. Todos tus datos están en la nube.');
   }catch(e){
-    console.error(e);
-    banner.innerHTML='<span style="color:var(--red)">Error en la migración. Revisá la consola del navegador.</span>';
+    console.error('Error migrando:',e);
+    // NO borramos localStorage si falló
+    banner.innerHTML=`<i class="ti ti-alert-triangle" style="color:var(--red)"></i>
+      <span style="color:var(--red)">Error: ${e.message}</span>
+      <button class="btn" style="padding:5px 10px;font-size:12px" onclick="migrarDesdeLocal()">Reintentar</button>
+      <button class="btn" style="padding:5px 10px;font-size:12px" onclick="document.getElementById('migration-banner').style.display='none'">Cerrar</button>`;
   }
 }
 
