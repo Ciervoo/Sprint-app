@@ -568,6 +568,8 @@ tr.clickable-row:hover td{background:var(--bg4)}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const SUPABASE_URL='https://johglgodyqckaddkdwdk.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvaGdsZ29keXFja2FkZGtkd2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzOTQ0OTMsImV4cCI6MjA5NTk3MDQ5M30.qo2OWpTb3X-fdJmTWXSvfPCzKR0yqFjwnNhd73HZnVQ';
@@ -1383,8 +1385,6 @@ function renderAnalitica(){
 // ── BOLETAS ──
 // ══════════════════════════════════════════
 
-const LEER_BOLETA_URL = 'https://north-paint.vercel.app/api/leer-boleta';
-
 function tabBoleta(el,target){
   el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
@@ -1410,41 +1410,183 @@ function setBoletaEstado(tipo,msg){
   if(!msg){el.style.display='none';return;}
   el.style.display='flex';
   el.className='boleta-estado '+tipo;
-  const spinner=tipo==='procesando'?'<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>':'';
-  el.innerHTML=spinner+' '+msg;
+  const spinner=tipo==='procesando'?'<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;margin-right:6px"></i>':'';
+  el.innerHTML=spinner+msg;
 }
 
-// ─ Procesar boleta via API
+// ─ Extraer texto de PDF con PDF.js (gratis, en el browser)
+async function extraerTextoPDF(file){
+  const pdfjsLib=window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc=
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const arrayBuffer=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  let texto='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    // Reconstruir líneas agrupando por posición Y aproximada
+    const items=content.items;
+    let ultimaY=null;
+    for(const item of items){
+      const y=Math.round(item.transform[5]);
+      if(ultimaY!==null&&Math.abs(y-ultimaY)>4) texto+='\n';
+      texto+=item.str+' ';
+      ultimaY=y;
+    }
+    texto+='\n';
+  }
+  return texto.trim();
+}
+
+// ─ Extraer texto de imagen con Tesseract (OCR, gratis, en el browser)
+async function extraerTextoImagen(file){
+  setBoletaEstado('procesando','Reconociendo texto en la imagen (puede tardar 20-30 seg)...');
+  const resultado=await Tesseract.recognize(file,'spa+eng',{
+    logger:m=>{
+      if(m.status==='recognizing text'){
+        const pct=Math.round((m.progress||0)*100);
+        setBoletaEstado('procesando',`Reconociendo texto... ${pct}%`);
+      }
+    }
+  });
+  return resultado.data.text;
+}
+
+// ─ Parser inteligente: convierte texto libre → lista de items del catálogo
+function parsearTextoFactura(texto){
+  const lineas=texto.split('\n');
+  const items=[];
+  const yaAgregados=new Set();
+
+  // Normalizar: minúsculas, sin tildes
+  const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+  // Extraer números de una cadena (filtra pesos argentinos: 1.000 → 1000)
+  const nums=s=>[...s.matchAll(/\d[\d.,]*/g)]
+    .map(m=>{
+      let n=m[0].replace(/\./g,'').replace(',','.');
+      return parseFloat(n);
+    })
+    .filter(n=>!isNaN(n)&&n>0);
+
+  // Reglas de matching: [id, regex de detección, regex de tamaño opcional]
+  const REGLAS=[
+    // Barnices — orden importa: más específico primero
+    ['H62',     /barniz.*h62|h62.*barniz|hs.*secado.*rap|h62/],
+    ['H67',     /barniz.*h67|h67.*barniz|h67/],
+    ['H69-7',   /h69.*7[,.]?5|7[,.]?5.*h69/],
+    ['H69-1',   /h69.*1[,.]?5|1[,.]?5.*h69|h69/],
+    ['H59-7',   /h59.*7[,.]?5|7[,.]?5.*h59/],
+    ['H59-1',   /h59.*1[,.]?5|1[,.]?5.*h59|h59/],
+    ['H77',     /h77/],
+    // Primers
+    ['F40',     /primer.*f40|f40.*primer|f40|primer.*5.*lt.*kit|f\s*40/],
+    ['F56',     /primer.*f56|f56|primer.*gt|gt.*2k|f\s*56/],
+    ['A14-3',   /a14.*3\s*lt|3\s*lt.*a14|nitro.*a14.*3|a14.*3/],
+    ['A14-1',   /a14|nitro.*gris|primer.*nitro/],
+    // Masillas
+    ['S99',     /s99|masilla.*blanc|poliester.*blanc/],
+    ['S97',     /s97|masilla.*beige|poliester.*beige/],
+    ['S61-3',   /s61.*3\s*lt|3\s*lt.*s61|one.*light.*3|3.*one.*light/],
+    ['S61',     /s61|one.*light/],
+    ['S20',     /s20|aluminio/],
+    // Otros
+    ['B320',    /b\s*320|extra.*body|sellador/],
+    ['GLAD',    /gladiator|soplete/],
+    ['THINNER', /thinner/],
+    ['DESENG-4',/desengrasante.*4\s*lt|4\s*lt.*desengrasante/],
+    ['DESENG',  /desengrasante/],
+    ['DILUYENTE-4',/diluyente.*4\s*lt|4\s*lt.*diluyente/],
+    ['DILUYENTE',/diluyente/],
+  ];
+
+  for(let li=0;li<lineas.length;li++){
+    const linea=lineas[li];
+    const ln=norm(linea);
+    if(ln.length<3)continue;
+
+    for(const [pid,regex] of REGLAS){
+      if(!regex.test(ln))continue;
+      if(yaAgregados.has(pid+li))continue;
+
+      // Buscar números en la línea y las 2 siguientes (a veces qty/precio están en líneas separadas)
+      const contexto=[linea,lineas[li+1]||'',lineas[li+2]||''].join(' ');
+      const ns=nums(contexto);
+
+      // Separar candidatos: cantidad = chico (0.5–50), costo = grande (>500)
+      const cantCand=ns.filter(n=>n>=0.5&&n<=50);
+      const costoCand=ns.filter(n=>n>=500);
+
+      const cantidad=cantCand.length?cantCand[0]:1;
+      // Precio unitario = el más chico de los grandes (evitar el total)
+      const costoUnitario=costoCand.length?Math.min(...costoCand):0;
+
+      const p=PRODUCTOS.find(x=>x.id===pid);
+      items.push({
+        pid,
+        nombre:p?p.nombre:pid,
+        unidad:p?p.unidad:'',
+        cantidad,
+        costoUnitario
+      });
+      yaAgregados.add(pid+li);
+      break; // Una regla por línea
+    }
+  }
+
+  return items;
+}
+
+// ─ Procesar boleta — todo en el browser, sin API externa
 async function procesarBoleta(file){
   if(!file)return;
   document.getElementById('boleta-preview').style.display='none';
-  setBoletaEstado('procesando','Analizando boleta con IA...');
 
-  const fd=new FormData();
-  fd.append('file',file);
-
+  let texto='';
   try{
-    const res=await fetch(LEER_BOLETA_URL,{method:'POST',body:fd});
-    const data=await res.json();
-
-    if(!res.ok||data.error){
-      setBoletaEstado('error','Error: '+(data.error||'Respuesta inválida del servidor'));
+    if(file.type==='application/pdf'){
+      setBoletaEstado('procesando','Extrayendo texto del PDF...');
+      texto=await extraerTextoPDF(file);
+      if(texto.length<30){
+        setBoletaEstado('error','El PDF parece ser escaneado o de imagen. Sacale una foto y subila como imagen.');
+        document.getElementById('boleta-file-input').value='';
+        return;
+      }
+    } else if(file.type.startsWith('image/')){
+      texto=await extraerTextoImagen(file);
+    } else {
+      setBoletaEstado('error','Formato no soportado. Usá PDF o imagen (JPG, PNG).');
       return;
     }
 
-    if(!data.items||!data.items.length){
-      setBoletaEstado('error','No se detectaron productos en la boleta. Usá la carga manual.');
+    setBoletaEstado('procesando','Identificando productos...');
+    const items=parsearTextoFactura(texto);
+
+    if(!items.length){
+      // Mostrar texto crudo para que el usuario lo inspeccione
+      setBoletaEstado('error',
+        `No se detectaron productos automáticamente. Usá la carga manual abajo. `+
+        `<button class="btn" style="margin-left:8px;padding:3px 10px;font-size:11px" onclick="verTextoRaw()">Ver texto extraído</button>`
+      );
+      window._textoRaw=texto;
+      document.getElementById('boleta-file-input').value='';
       return;
     }
 
-    setBoletaEstado('ok',`${data.items.length} producto${data.items.length>1?'s':''} detectado${data.items.length>1?'s':''}`);
-    renderBoletaPreview(data.items);
+    setBoletaEstado('ok',`${items.length} producto${items.length!==1?'s':''} detectado${items.length!==1?'s':''} — revisá antes de cargar`);
+    renderBoletaPreview(items);
   }catch(e){
-    setBoletaEstado('error','No se pudo conectar con el servidor. Verificá tu conexión.');
+    setBoletaEstado('error','Error al procesar el archivo: '+e.message);
     console.error(e);
   }
-  // Limpiar el input para poder subir el mismo archivo de nuevo
   document.getElementById('boleta-file-input').value='';
+}
+
+function verTextoRaw(){
+  const t=window._textoRaw||'(sin texto)';
+  const w=window.open('','_blank','width=600,height=500');
+  w.document.write(`<pre style="font-family:monospace;font-size:12px;padding:16px;white-space:pre-wrap">${t.replace(/</g,'&lt;')}</pre>`);
 }
 
 // ─ Preview de items detectados
