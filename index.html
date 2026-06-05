@@ -1569,7 +1569,7 @@ function parsearTextoFactura(texto){
     ['H77',     /h77/],
     // Primers
     ['F40',     /primer.*f40|f40.*primer|f40|primer.*5.*lt.*kit|f\s*40/],
-    ['F56',     /primer.*f56|f56|primer.*gt|gt.*2k|f\s*56/],
+    ['F56',     /primer.*f5\d|f5[5-9]|f56|f57|f58|primer.*gt|gt.*2k|primer.*5:1|f\s*5[6-9]/],
     ['A14-3',   /a14.*3\s*lt|3\s*lt.*a14|nitro.*a14.*3|a14.*3/],
     ['A14-1',   /a14|nitro.*gris|primer.*nitro/],
     // Masillas
@@ -1600,12 +1600,15 @@ function parsearTextoFactura(texto){
       if(!regex.test(ln))continue;
       if(yaAgregados.has(pid+li))continue;
 
-      // Buscar números en la línea y las 2 siguientes para detectar cantidad
+      // Buscar cantidad — limpiar códigos y ratios antes de extraer números
       const contexto=[linea,lineas[li+1]||'',lineas[li+2]||''].join(' ');
-      const ns=nums(contexto);
-
-      // Cantidad = número chico (0.5–50) que aparece en la factura
-      const cantCand=ns.filter(n=>n>=0.5&&n<=50);
+      const ctxLimpio=contexto
+        .replace(/[A-Z]\d{2,}/gi,'')  // códigos tipo F57, H69, A14
+        .replace(/\d+[:.]\d+/g,'')    // ratios 5:1 y tamaños 7.5
+        .replace(/\$[\d.,]+/g,'')     // precios con $
+        .replace(/\b\d{4,}\b/g,'');   // números largos (precios sin $)
+      const ns=nums(ctxLimpio);
+      const cantCand=ns.filter(n=>Number.isInteger(n)&&n>=1&&n<=20);
       const cantidad=cantCand.length?cantCand[0]:1;
 
       // Costo → siempre del catálogo de Sprint, no de la factura
