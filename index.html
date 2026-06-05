@@ -585,7 +585,7 @@ const PRODUCTOS=[
   {id:'H59-7',nombre:'Barniz H59 HS Curado Rapido',unidad:'kit 7.5lt',precio:406800,costo:264420},
   {id:'H77',nombre:'Barniz H77 UHS Air-Wide',unidad:'kit 1.5lt',precio:89640,costo:58266},
   {id:'F40',nombre:'Primer F40 5lt kit',unidad:'kit 5lt',precio:217080,costo:141102},
-  {id:'F56',nombre:'Primer GT 2K 1.2lt kit',unidad:'kit 1.2lt',precio:65000,costo:42250},
+  {id:'F56',nombre:'Primer GT 2K 1,2lt',unidad:'kit 1.2lt',precio:65000,costo:42250},
   {id:'A14-1',nombre:'Primer Nitro A14 Gris',unidad:'1lt',precio:43000,costo:27950},
   {id:'A14-3',nombre:'Primer Nitro A14 Gris',unidad:'3lt',precio:130000,costo:84500},
   {id:'S99',nombre:'Masilla Poliester S99 Blanca',unidad:'1lt',precio:50300,costo:32695},
@@ -1653,6 +1653,7 @@ async function cargarCompraDesdeItems(){
   if(!rows.length){alert('No hay items para cargar.');return;}
 
   const hoy=new Date().toISOString().slice(0,10);
+  const baseId=Date.now(); // entero, se incrementa por índice para evitar colisiones
   let errores=0;
   let ok=0;
 
@@ -1663,7 +1664,7 @@ async function cargarCompraDesdeItems(){
     const costo=parseFloat(row.querySelector('.pi-costo').value)||0;
     if(cant<=0)continue;
 
-    const nc={id:Date.now()+Math.random(),pid,cant,costo,fecha:hoy};
+    const nc={id:baseId+ok+errores,pid,cant,costo,fecha:hoy};
     try{
       const {error}=await sb.from('compras').insert(nc);
       if(error)throw error;
@@ -1711,6 +1712,7 @@ function addManualRow(){
 async function guardarManualBatch(){
   const rows=[...document.getElementById('manual-rows-tbody').querySelectorAll('tr')];
   if(!rows.length){alert('No hay filas para guardar.');return;}
+  const baseId=Date.now();
   let ok=0,errores=0;
   for(const row of rows){
     const inputs=row.querySelectorAll('input,select');
@@ -1719,7 +1721,7 @@ async function guardarManualBatch(){
     const costo=parseFloat(inputs[2].value)||0;
     const fecha=inputs[3].value||new Date().toISOString().slice(0,10);
     if(cant<=0||!pid)continue;
-    const nc={id:Date.now()+Math.random(),pid,cant,costo,fecha};
+    const nc={id:baseId+ok+errores,pid,cant,costo,fecha};
     try{
       const {error}=await sb.from('compras').insert(nc);
       if(error)throw error;
