@@ -1569,7 +1569,7 @@ function parsearTextoFactura(texto){
     ['H77',     /h77/],
     // Primers
     ['F40',     /primer.*f40|f40.*primer|f40|primer.*5.*lt.*kit|f\s*40/],
-    ['F56',     /primer.*f5\d|f5[5-9]|f56|f57|f58|primer.*gt|gt.*2k|primer.*5:1|f\s*5[6-9]/],
+    ['F56',     /primer.*f\d{2,}|f4[1-9]|f[5-9]\d|primer.*gt|gt.*2k|primer.*5:1/],
     ['A14-3',   /a14.*3\s*lt|3\s*lt.*a14|nitro.*a14.*3|a14.*3/],
     ['A14-1',   /a14|nitro.*gris|primer.*nitro/],
     // Masillas
@@ -1600,16 +1600,23 @@ function parsearTextoFactura(texto){
       if(!regex.test(ln))continue;
       if(yaAgregados.has(pid+li))continue;
 
-      // Buscar cantidad — limpiar códigos y ratios antes de extraer números
+      // Buscar cantidad: en facturas Mediun el nro. viene justo después de la medida (lt./ml.)
       const contexto=[linea,lineas[li+1]||'',lineas[li+2]||''].join(' ');
-      const ctxLimpio=contexto
-        .replace(/[A-Z]\d{2,}/gi,'')  // códigos tipo F57, H69, A14
-        .replace(/\d+[:.]\d+/g,'')    // ratios 5:1 y tamaños 7.5
-        .replace(/\$[\d.,]+/g,'')     // precios con $
-        .replace(/\b\d{4,}\b/g,'');   // números largos (precios sin $)
-      const ns=nums(ctxLimpio);
-      const cantCand=ns.filter(n=>Number.isInteger(n)&&n>=1&&n<=20);
-      const cantidad=cantCand.length?cantCand[0]:1;
+      const matchMedida=/(?:\d+(?:[.,]\d+)?\s*(?:lt|ml|lts)\.?)\s+(\d+)\b/i.exec(contexto);
+      let cantidad=1;
+      if(matchMedida){
+        cantidad=parseInt(matchMedida[1]);
+      }else{
+        // Fallback: primer entero suelto, excluyendo códigos y ratios
+        const ctxLimpio=contexto
+          .replace(/[A-Z]\d{2,}/gi,'')
+          .replace(/\d+:\d+/g,'')
+          .replace(/\$[\d.,]+/g,'')
+          .replace(/\b\d{3,}\b/g,'');
+        const ns=nums(ctxLimpio);
+        const cantCand=ns.filter(n=>Number.isInteger(n)&&n>=1&&n<=20);
+        cantidad=cantCand.length?cantCand[0]:1;
+      }
 
       // Costo → siempre del catálogo de Sprint, no de la factura
       const p=PRODUCTOS.find(x=>x.id===pid);
