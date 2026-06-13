@@ -447,37 +447,54 @@ tr.clickable-row:hover td{background:var(--bg4)}
 
 <!-- MODAL VENTA -->
 <div class="modal-bg" id="modal-venta">
-  <div class="modal">
+  <div class="modal modal-wide">
     <h3 id="modal-venta-titulo"></h3>
     <div class="highlight-box" id="v-cliente-info" style="display:none"></div>
     <div class="form-row">
       <div class="form-group"><label>Cliente</label><select id="v-cliente" onchange="onClienteVentaChange()"></select></div>
       <div class="form-group"><label>Fecha</label><input type="date" id="v-fecha"></div>
     </div>
-    <div class="form-group"><label>Producto</label><select id="v-producto" onchange="onProductoChange()"></select></div>
-    <div class="form-row">
-      <div class="form-group"><label>Cantidad</label><input type="number" id="v-cant" value="1" min="1" oninput="calcVenta()"></div>
-      <div class="form-group"><label>Precio lista</label><input type="text" id="v-precio-lista" readonly></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Precio real (editable)</label><input type="number" id="v-precio" oninput="calcVenta()"></div>
-      <div class="form-group"><label>Descuento %</label><input type="number" id="v-desc" value="0" min="0" max="100" oninput="calcFromDesc()"></div>
-    </div>
     <div class="form-row">
       <div class="form-group"><label>Forma de pago</label>
         <select id="v-pago"><option>Efectivo</option><option>Transferencia</option><option>Cheque</option><option>Cuenta corriente</option></select>
       </div>
-      <div class="form-group"><label>Total</label><input type="text" id="v-total" readonly></div>
-    </div>
-    <div class="form-row">
       <div class="form-group"><label>Estado de entrega</label>
         <select id="v-entrega"><option value="pendiente">A entregar</option><option value="entregado">Entregado</option></select>
       </div>
+    </div>
+    <!-- Items multi-producto -->
+    <div style="margin:10px 0 6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <label style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Productos</label>
+        <button class="btn" onclick="addItemVenta()" style="padding:4px 14px;font-size:12px"><i class="ti ti-plus"></i> Agregar producto</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border2)">
+              <th style="text-align:left;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Producto</th>
+              <th style="text-align:center;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;width:58px">Cant</th>
+              <th style="text-align:right;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;width:88px">Precio lista</th>
+              <th style="text-align:right;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;width:88px">Precio real</th>
+              <th style="text-align:center;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;width:52px">Desc%</th>
+              <th style="text-align:right;padding:5px 6px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;width:80px">Subtotal</th>
+              <th style="width:28px"></th>
+            </tr>
+          </thead>
+          <tbody id="v-items-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;padding:8px 4px;border-top:2px solid var(--border2);margin-top:4px;gap:12px">
+        <span style="font-size:12px;color:var(--text2);font-weight:500">Total venta:</span>
+        <span id="v-grand-total" style="font-size:17px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text)">$0</span>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>Estado de cobro</label>
         <select id="v-cobrado"><option value="pendiente">Pendiente de cobro</option><option value="cobrado">Cobrado</option></select>
       </div>
+      <div class="form-group"><label>Notas</label><input type="text" id="v-notas" placeholder="Opcional..."></div>
     </div>
-    <div class="form-group"><label>Notas</label><input type="text" id="v-notas" placeholder="Opcional..."></div>
     <div class="modal-footer">
       <div id="v-btn-eliminar"></div>
       <div class="modal-footer-right">
@@ -616,6 +633,7 @@ const PRODUCTOS=[
 let DB={ventas:[],compras:[],stock:{},clientes:[],pagos:[]};
 let clienteActivo=null;
 let ventaEditandoId=null;
+let ventaEditandoGrupo=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR')}
 function today(){return new Date().toISOString().slice(0,10)}
@@ -774,51 +792,61 @@ function badgeOrigen(origen){
 }
 
 // ── MODAL VENTA ──
-function abrirModalVenta(preClienteId,editVentaId){
+function abrirModalVenta(preClienteId,editVentaId,editGrupo){
   if(!DB.clientes.length){alert('Primero registrá un cliente.');return;}
-  ventaEditandoId=editVentaId||null;
+  ventaEditandoId=null;
+  ventaEditandoGrupo=null;
   fillSelect('v-cliente',DB.clientes.map(c=>({val:c.id,label:c.nombre})));
-  fillSelect('v-producto',PRODUCTOS.map(p=>({val:p.id,label:p.nombre+' ('+p.unidad+')'})));
-  if(editVentaId){
-    const v=DB.ventas.find(x=>x.id===editVentaId);
-    if(!v)return;
+  document.getElementById('v-items-tbody').innerHTML='';
+
+  if(editVentaId||editGrupo){
+    // Modo edición: detectar si la venta pertenece a un grupo
+    let ventasEditar=[];
+    if(editGrupo){
+      ventasEditar=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(editGrupo));
+      ventaEditandoGrupo=Number(editGrupo);
+    } else {
+      const vBase=DB.ventas.find(x=>x.id===editVentaId);
+      if(!vBase)return;
+      if(vBase.grupo_venta){
+        ventasEditar=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(vBase.grupo_venta));
+        ventaEditandoGrupo=Number(vBase.grupo_venta);
+      } else {
+        ventasEditar=[vBase];
+        ventaEditandoId=editVentaId;
+      }
+    }
+    if(!ventasEditar.length)return;
+    const v0=ventasEditar[0];
     document.getElementById('modal-venta-titulo').innerHTML='<i class="ti ti-edit" style="margin-right:8px;color:var(--amber)"></i>Editar venta';
     document.getElementById('v-btn-guardar').innerHTML='<i class="ti ti-check"></i> Guardar cambios';
-    document.getElementById('v-btn-eliminar').innerHTML=`<button class="btn btn-danger" onclick="eliminarVenta(${editVentaId})"><i class="ti ti-trash"></i> Eliminar</button>`;
-    document.getElementById('v-cliente').value=v.cid;
-    document.getElementById('v-fecha').value=v.fecha;
-    document.getElementById('v-producto').value=v.pid;
-    document.getElementById('v-cant').value=v.cant;
-    document.getElementById('v-precio').value=v.precio;
-    document.getElementById('v-pago').value=v.pago;
-    document.getElementById('v-notas').value=v.notas||'';
-    document.getElementById('v-entrega').value=v.entregado?'entregado':'pendiente';
-    document.getElementById('v-cobrado').value=v.cobrado>=v.total?'cobrado':'pendiente';
-    const p=PRODUCTOS.find(x=>x.id===v.pid);
-    if(p){
-      document.getElementById('v-precio-lista').value=fmt(p.precio);
-      document.getElementById('v-desc').value=Math.max(0,Math.round((1-v.precio/p.precio)*100));
-    }
-    document.getElementById('v-total').value=fmt(v.precio*v.cant);
-  }else{
+    document.getElementById('v-btn-eliminar').innerHTML=`<button class="btn btn-danger" onclick="eliminarVentaActual()"><i class="ti ti-trash"></i> Eliminar</button>`;
+    document.getElementById('v-cliente').value=v0.cid;
+    document.getElementById('v-fecha').value=v0.fecha;
+    document.getElementById('v-pago').value=v0.pago;
+    document.getElementById('v-notas').value=v0.notas||'';
+    document.getElementById('v-entrega').value=v0.entregado?'entregado':'pendiente';
+    const totalGrupo=ventasEditar.reduce((s,v)=>s+Number(v.total),0);
+    const cobradoGrupo=ventasEditar.reduce((s,v)=>s+Number(v.cobrado),0);
+    document.getElementById('v-cobrado').value=cobradoGrupo>=totalGrupo?'cobrado':'pendiente';
+    ventasEditar.forEach(v=>addItemVenta(v.pid,v.cant,v.precio));
+  } else {
     document.getElementById('modal-venta-titulo').innerHTML='<i class="ti ti-receipt" style="margin-right:8px;color:var(--accent)"></i>Registrar venta';
     document.getElementById('v-btn-guardar').innerHTML='<i class="ti ti-check"></i> Registrar';
     document.getElementById('v-btn-eliminar').innerHTML='';
     document.getElementById('v-fecha').value=today();
     document.getElementById('v-notas').value='';
-    document.getElementById('v-cant').value=1;
-    document.getElementById('v-desc').value=0;
     document.getElementById('v-entrega').value='pendiente';
     document.getElementById('v-cobrado').value='pendiente';
     if(preClienteId)document.getElementById('v-cliente').value=preClienteId;
-    onProductoChange();
+    addItemVenta();
   }
   onClienteVentaChange();
   closeModal('modal-detalle-cliente');
   document.getElementById('modal-venta').classList.add('open');
 }
 
-function abrirVentaDesdeDetalle(){abrirModalVenta(clienteActivo,null)}
+function abrirVentaDesdeDetalle(){abrirModalVenta(clienteActivo,null,null)}
 
 function onClienteVentaChange(){
   const cid=document.getElementById('v-cliente').value;
@@ -833,78 +861,169 @@ function onClienteVentaChange(){
   }else{info.style.display='none';}
 }
 
-function onProductoChange(){
-  const pid=document.getElementById('v-producto').value;
-  const p=PRODUCTOS.find(x=>x.id===pid);
-  if(p){
-    document.getElementById('v-precio-lista').value=fmt(p.precio);
-    document.getElementById('v-precio').value=p.precio;
-    document.getElementById('v-desc').value=0;
-    calcVenta();
-  }
+// ── ITEMS MULTI-PRODUCTO ──
+function addItemVenta(pid,cant,precio){
+  const tbody=document.getElementById('v-items-tbody');
+  const rid='r'+Date.now()+Math.floor(Math.random()*9999);
+  const firstPid=pid||PRODUCTOS[0].id;
+  const p=PRODUCTOS.find(x=>x.id===firstPid)||PRODUCTOS[0];
+  const precioLista=p.precio;
+  const precioReal=precio!==undefined?precio:precioLista;
+  const cantVal=cant||1;
+  const descVal=precioLista>0?Math.max(0,Math.round((1-precioReal/precioLista)*100)):0;
+  const subtotal=precioReal*cantVal;
+  const pidOpts=PRODUCTOS.map(x=>`<option value="${x.id}"${x.id===firstPid?' selected':''}>${x.nombre} (${x.unidad})</option>`).join('');
+  const inputStyle='padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:\'DM Mono\',monospace;width:100%';
+  const roStyle='padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text2);font-size:12px;font-family:\'DM Mono\',monospace;width:100%';
+  tbody.insertAdjacentHTML('beforeend',`<tr data-rid="${rid}" style="border-bottom:1px solid var(--border)">
+    <td style="padding:5px 5px">
+      <select id="vpid-${rid}" onchange="onProductoItemChange('${rid}')" style="padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;width:100%;min-width:175px">${pidOpts}</select>
+    </td>
+    <td style="padding:5px 5px;text-align:center">
+      <input type="number" id="vcant-${rid}" value="${cantVal}" min="0.1" step="0.1" oninput="calcItemVenta('${rid}')" style="${inputStyle};width:50px;text-align:center">
+    </td>
+    <td style="padding:5px 5px">
+      <input type="text" id="vpl-${rid}" value="${fmt(precioLista)}" readonly style="${roStyle};width:82px;text-align:right">
+    </td>
+    <td style="padding:5px 5px">
+      <input type="number" id="vpr-${rid}" value="${precioReal}" min="0" oninput="calcItemVenta('${rid}')" style="${inputStyle};width:82px;text-align:right">
+    </td>
+    <td style="padding:5px 5px;text-align:center">
+      <input type="number" id="vdesc-${rid}" value="${descVal}" min="0" max="100" oninput="calcDescItemVenta('${rid}')" style="${inputStyle};width:44px;text-align:center">
+    </td>
+    <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;white-space:nowrap" id="vsub-${rid}">${fmt(subtotal)}</td>
+    <td style="padding:5px 4px">
+      <button class="btn-icon danger" onclick="this.closest('tr').remove();calcGrandTotal()" title="Quitar producto" style="padding:3px 6px"><i class="ti ti-x"></i></button>
+    </td>
+  </tr>`);
+  calcGrandTotal();
 }
-function calcVenta(){
-  const cant=parseFloat(document.getElementById('v-cant').value)||1;
-  const precio=parseFloat(document.getElementById('v-precio').value)||0;
-  const pid=document.getElementById('v-producto').value;
-  const p=PRODUCTOS.find(x=>x.id===pid);
-  if(p)document.getElementById('v-desc').value=Math.max(0,Math.round((1-precio/p.precio)*100));
-  document.getElementById('v-total').value=fmt(precio*cant);
-}
-function calcFromDesc(){
-  const pid=document.getElementById('v-producto').value;
+
+function onProductoItemChange(rid){
+  const pid=document.getElementById(`vpid-${rid}`)?.value;
   const p=PRODUCTOS.find(x=>x.id===pid);
   if(!p)return;
-  document.getElementById('v-precio').value=Math.round(p.precio*(1-(parseFloat(document.getElementById('v-desc').value)||0)/100));
-  calcVenta();
+  document.getElementById(`vpl-${rid}`).value=fmt(p.precio);
+  document.getElementById(`vpr-${rid}`).value=p.precio;
+  document.getElementById(`vdesc-${rid}`).value=0;
+  calcItemVenta(rid);
+}
+
+function calcItemVenta(rid){
+  const cant=parseFloat(document.getElementById(`vcant-${rid}`)?.value)||1;
+  const precio=parseFloat(document.getElementById(`vpr-${rid}`)?.value)||0;
+  const pid=document.getElementById(`vpid-${rid}`)?.value;
+  const p=PRODUCTOS.find(x=>x.id===pid);
+  if(p&&precio<=p.precio)document.getElementById(`vdesc-${rid}`).value=Math.max(0,Math.round((1-precio/p.precio)*100));
+  document.getElementById(`vsub-${rid}`).textContent=fmt(precio*cant);
+  calcGrandTotal();
+}
+
+function calcDescItemVenta(rid){
+  const pid=document.getElementById(`vpid-${rid}`)?.value;
+  const p=PRODUCTOS.find(x=>x.id===pid);
+  if(!p)return;
+  const desc=parseFloat(document.getElementById(`vdesc-${rid}`)?.value)||0;
+  document.getElementById(`vpr-${rid}`).value=Math.round(p.precio*(1-desc/100));
+  calcItemVenta(rid);
+}
+
+function calcGrandTotal(){
+  const rows=[...document.getElementById('v-items-tbody').querySelectorAll('tr[data-rid]')];
+  const total=rows.reduce((sum,row)=>{
+    const rid=row.dataset.rid;
+    const cant=parseFloat(document.getElementById(`vcant-${rid}`)?.value)||1;
+    const precio=parseFloat(document.getElementById(`vpr-${rid}`)?.value)||0;
+    return sum+cant*precio;
+  },0);
+  document.getElementById('v-grand-total').textContent=fmt(total);
 }
 
 async function guardarVenta(){
   const btn=document.getElementById('v-btn-guardar');
   btn.disabled=true;
   const cid=document.getElementById('v-cliente').value;
-  const pid=document.getElementById('v-producto').value;
-  const cant=parseFloat(document.getElementById('v-cant').value)||1;
-  const precio=parseFloat(document.getElementById('v-precio').value)||0;
   const pago=document.getElementById('v-pago').value;
   const fecha=document.getElementById('v-fecha').value;
   const notas=document.getElementById('v-notas').value;
   const entregado=document.getElementById('v-entrega').value==='entregado';
   const esCobrado=document.getElementById('v-cobrado').value==='cobrado';
-  const p=PRODUCTOS.find(x=>x.id===pid);
-  const total=precio*cant;
-  const costo=(p?p.costo:0)*cant;
-  const cobrado=esCobrado?total:0;
+
+  // Recolectar items del tbody
+  const rows=[...document.getElementById('v-items-tbody').querySelectorAll('tr[data-rid]')];
+  if(!rows.length){alert('Agregá al menos un producto.');btn.disabled=false;return;}
+  const items=rows.map(row=>{
+    const rid=row.dataset.rid;
+    const pid=document.getElementById(`vpid-${rid}`)?.value;
+    const cant=parseFloat(document.getElementById(`vcant-${rid}`)?.value)||1;
+    const precio=parseFloat(document.getElementById(`vpr-${rid}`)?.value)||0;
+    const p=PRODUCTOS.find(x=>x.id===pid);
+    const total=precio*cant;
+    const costo=(p?p.costo:0)*cant;
+    return{pid,cant,precio,total,costo};
+  }).filter(x=>x.pid&&x.cant>0&&x.precio>0);
+  if(!items.length){alert('Completá los productos con cantidad y precio.');btn.disabled=false;return;}
+
+  const totalGeneral=items.reduce((s,x)=>s+x.total,0);
+  const cobradoGeneral=esCobrado?totalGeneral:0;
+  const nuevoGrupo=Date.now();
+
   try{
-    if(ventaEditandoId){
-      const vieja=DB.ventas.find(x=>x.id===ventaEditandoId);
-      if(vieja){
-        const ns=(DB.stock[vieja.pid]||0)+vieja.cant;
-        await sb.from('stock').upsert({pid:vieja.pid,cantidad:ns},{onConflict:'pid'});
-        DB.stock[vieja.pid]=ns;
-        if(vieja.cobrado<vieja.total){
-          const clV=DB.clientes.find(c=>c.id===vieja.cid);
-          if(clV){
-            const nd=Math.max(0,(clV.deuda||0)-(vieja.total-vieja.cobrado));
-            await sb.from('clientes').update({deuda:nd}).eq('id',vieja.cid);
-            clV.deuda=nd;
-          }
-        }
-        await sb.from('ventas').delete().eq('id',ventaEditandoId);
-        DB.ventas=DB.ventas.filter(x=>x.id!==ventaEditandoId);
+    // Si estamos editando: borrar ventas anteriores y revertir stock/deuda
+    if(ventaEditandoGrupo||ventaEditandoId){
+      let viejas=[];
+      if(ventaEditandoGrupo){
+        viejas=DB.ventas.filter(v=>Number(v.grupo_venta)===ventaEditandoGrupo);
+      } else if(ventaEditandoId){
+        const v=DB.ventas.find(x=>x.id===ventaEditandoId);
+        if(v)viejas=[v];
       }
+      // Revertir stock
+      for(const v of viejas){
+        const ns=(DB.stock[v.pid]||0)+v.cant;
+        await sb.from('stock').upsert({pid:v.pid,cantidad:ns},{onConflict:'pid'});
+        DB.stock[v.pid]=ns;
+      }
+      // Revertir deuda
+      const viejaCobrado=viejas.reduce((s,v)=>s+Number(v.cobrado),0);
+      const viejaTotal=viejas.reduce((s,v)=>s+Number(v.total),0);
+      if(viejaCobrado<viejaTotal&&viejas.length){
+        const clV=DB.clientes.find(c=>c.id===viejas[0].cid);
+        if(clV){
+          const nd=Math.max(0,(clV.deuda||0)-(viejaTotal-viejaCobrado));
+          await sb.from('clientes').update({deuda:nd}).eq('id',viejas[0].cid);
+          clV.deuda=nd;
+        }
+      }
+      const idsViejos=viejas.map(v=>v.id);
+      if(idsViejos.length)await sb.from('ventas').delete().in('id',idsViejos);
+      DB.ventas=DB.ventas.filter(v=>!idsViejos.includes(v.id));
     }
-    const nv={id:ventaEditandoId||Date.now(),cid,pid,cant,precio,total,costo,pago,fecha,notas,cobrado,entregado,origen:'manual'};
-    const {error}=await sb.from('ventas').insert(nv);
+
+    // Insertar nuevas ventas con grupo_venta
+    const baseId=Date.now();
+    const nuevas=items.map((item,i)=>({
+      id:baseId+i,cid,pid:item.pid,cant:item.cant,precio:item.precio,
+      total:item.total,costo:item.costo,
+      cobrado:esCobrado?item.total:0,
+      pago,fecha,notas,entregado,origen:'manual',
+      grupo_venta:ventaEditandoGrupo||nuevoGrupo
+    }));
+    const{error}=await sb.from('ventas').insert(nuevas);
     if(error)throw error;
-    DB.ventas.push(nv);
-    const ns2=(DB.stock[pid]||0)-cant;
-    await sb.from('stock').upsert({pid,cantidad:ns2},{onConflict:'pid'});
-    DB.stock[pid]=ns2;
+    nuevas.forEach(nv=>{
+      DB.ventas.push(nv);
+      DB.stock[nv.pid]=(DB.stock[nv.pid]||0)-nv.cant;
+    });
+    // Actualizar stock en BD
+    for(const nv of nuevas){
+      await sb.from('stock').upsert({pid:nv.pid,cantidad:DB.stock[nv.pid]},{onConflict:'pid'});
+    }
+    // Actualizar deuda si no cobrado
     if(!esCobrado){
       const cl=DB.clientes.find(c=>c.id===cid);
       if(cl){
-        const nd=(cl.deuda||0)+(total-cobrado);
+        const nd=(cl.deuda||0)+totalGeneral;
         await sb.from('clientes').update({deuda:nd}).eq('id',cid);
         cl.deuda=nd;
       }
@@ -916,14 +1035,48 @@ async function guardarVenta(){
     return;
   }
   ventaEditandoId=null;
+  ventaEditandoGrupo=null;
   btn.disabled=false;
   closeModal('modal-venta');
   if(clienteActivo===cid)verCliente(cid);
   renderVentas();renderDashboard();
 }
 
-async function eliminarVenta(id){
-  if(!confirm('¿Eliminar esta venta?'))return;
+async function eliminarVentaActual(){
+  const msg=ventaEditandoGrupo?'¿Eliminar esta venta (todos los productos)?':'¿Eliminar esta venta?';
+  if(!confirm(msg))return;
+  try{
+    if(ventaEditandoGrupo){
+      await eliminarGrupoVenta(ventaEditandoGrupo,true);
+    } else if(ventaEditandoId){
+      await eliminarVenta(ventaEditandoId,true);
+    }
+  }catch(e){alert('Error: '+e.message);}
+  ventaEditandoId=null;ventaEditandoGrupo=null;
+  closeModal('modal-venta');
+}
+
+async function eliminarGrupoVenta(grupoVenta,sinConfirm){
+  if(!sinConfirm&&!confirm('¿Eliminar esta venta (todos los productos)?'))return;
+  const toDelete=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(grupoVenta));
+  for(const v of toDelete){
+    const ns=(DB.stock[v.pid]||0)+v.cant;
+    await sb.from('stock').upsert({pid:v.pid,cantidad:ns},{onConflict:'pid'});
+    DB.stock[v.pid]=ns;
+    if(Number(v.cobrado)<Number(v.total)){
+      const cl=DB.clientes.find(c=>c.id===v.cid);
+      if(cl){const nd=Math.max(0,(cl.deuda||0)-(v.total-v.cobrado));await sb.from('clientes').update({deuda:nd}).eq('id',v.cid);cl.deuda=nd;}
+    }
+  }
+  const ids=toDelete.map(v=>v.id);
+  if(ids.length)await sb.from('ventas').delete().in('id',ids);
+  DB.ventas=DB.ventas.filter(v=>!ids.includes(v.id));
+  renderVentas();renderDashboard();
+  if(clienteActivo)verCliente(clienteActivo);
+}
+
+async function eliminarVenta(id,sinConfirm){
+  if(!sinConfirm&&!confirm('¿Eliminar esta venta?'))return;
   const v=DB.ventas.find(x=>x.id===id);
   if(v){
     const ns=(DB.stock[v.pid]||0)+v.cant;
@@ -971,6 +1124,39 @@ async function toggleCobro(id){
   await sb.from('ventas').update({cobrado:v.cobrado}).eq('id',id);
   renderVentas();renderDashboard();renderClientes();
   if(clienteActivo===v.cid)verCliente(v.cid);
+}
+
+async function toggleEntregaGrupo(grupoVenta){
+  const vs=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(grupoVenta));
+  if(!vs.length)return;
+  const nuevoEstado=!vs.every(v=>v.entregado);
+  for(const v of vs){v.entregado=nuevoEstado;}
+  await sb.from('ventas').update({entregado:nuevoEstado}).in('id',vs.map(v=>v.id));
+  renderVentas();renderDashboard();
+  if(clienteActivo)verCliente(clienteActivo);
+}
+
+async function toggleCobroGrupo(grupoVenta){
+  const vs=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(grupoVenta));
+  if(!vs.length)return;
+  const totalGrupo=vs.reduce((s,v)=>s+Number(v.total),0);
+  const cobradoGrupo=vs.reduce((s,v)=>s+Number(v.cobrado),0);
+  const eraPendiente=cobradoGrupo<totalGrupo;
+  const cid=vs[0].cid;
+  if(eraPendiente){
+    const diff=totalGrupo-cobradoGrupo;
+    vs.forEach(v=>{v.cobrado=v.total;});
+    const cl=DB.clientes.find(c=>c.id===cid);
+    if(cl){const nd=Math.max(0,(cl.deuda||0)-diff);await sb.from('clientes').update({deuda:nd}).eq('id',cid);cl.deuda=nd;}
+    for(const v of vs)await sb.from('ventas').update({cobrado:v.total}).eq('id',v.id);
+  }else{
+    vs.forEach(v=>{v.cobrado=0;});
+    const cl=DB.clientes.find(c=>c.id===cid);
+    if(cl){const nd=(cl.deuda||0)+totalGrupo;await sb.from('clientes').update({deuda:nd}).eq('id',cid);cl.deuda=nd;}
+    for(const v of vs)await sb.from('ventas').update({cobrado:0}).eq('id',v.id);
+  }
+  renderVentas();renderDashboard();renderClientes();
+  if(clienteActivo)verCliente(clienteActivo);
 }
 
 // ── COMPRA ──
@@ -1182,28 +1368,84 @@ function renderDashboard(){
 }
 
 function renderVentas(){
-  document.getElementById('ventas-tbody').innerHTML=DB.ventas.length?[...DB.ventas].reverse().map(v=>{
-    const cl=DB.clientes.find(c=>c.id===v.cid);
-    const p=PRODUCTOS.find(x=>x.id===v.pid);
-    const desc=p?Math.max(0,Math.round((1-v.precio/p.precio)*100)):0;
-    const rowClass=!v.entregado?'pending-row':'';
-    return`<tr class="clickable-row ${rowClass}" onclick="if(!event.target.closest('.badge-clickable,.btn-icon'))abrirModalVenta(null,${v.id})">
-      <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
-      <td>${cl?cl.nombre:'-'}</td>
-      <td style="color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</td>
-      <td>${v.cant}</td>
-      <td class="mono">${fmt(v.precio)}</td>
-      <td>${desc>0?'<span class="badge badge-gray">-'+desc+'%</span>':'-'}</td>
-      <td class="mono">${fmt(v.total)}</td>
-      <td><span class="badge badge-blue">${v.pago}</span></td>
-      <td>${badgeOrigen(v.origen)}</td>
-      <td>${badgeEntrega(v.entregado,v.id)}</td>
-      <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
-      <td><div class="actions-cell">
-        <button class="btn-icon" onclick="abrirModalVenta(null,${v.id})" title="Editar"><i class="ti ti-edit"></i></button>
-        <button class="btn-icon danger" onclick="if(confirm('¿Eliminar?'))eliminarVenta(${v.id})" title="Eliminar"><i class="ti ti-trash"></i></button>
-      </div></td>
-    </tr>`}).join(''):`<tr><td colspan="12" class="empty">Sin ventas registradas</td></tr>`;
+  // Agrupar por grupo_venta; las ventas sin grupo_venta son individuales
+  const grupos={};
+  const singles=[];
+  DB.ventas.forEach(v=>{
+    if(v.grupo_venta){
+      const gk=String(v.grupo_venta);
+      if(!grupos[gk])grupos[gk]=[];
+      grupos[gk].push(v);
+    } else {
+      singles.push(v);
+    }
+  });
+  const items=[];
+  singles.forEach(v=>items.push({type:'single',v,sortId:Number(v.id)||0}));
+  Object.entries(grupos).forEach(([gk,vs])=>{
+    items.push({type:'group',vs,v0:vs[0],gv:Number(gk),sortId:Math.max(...vs.map(v=>Number(v.id)||0))});
+  });
+  items.sort((a,b)=>b.sortId-a.sortId);
+
+  const tbody=document.getElementById('ventas-tbody');
+  if(!items.length){tbody.innerHTML=`<tr><td colspan="12" class="empty">Sin ventas registradas</td></tr>`;return;}
+
+  tbody.innerHTML=items.map(item=>{
+    if(item.type==='single'){
+      const v=item.v;
+      const cl=DB.clientes.find(c=>c.id===v.cid);
+      const p=PRODUCTOS.find(x=>x.id===v.pid);
+      const desc=p?Math.max(0,Math.round((1-v.precio/p.precio)*100)):0;
+      const rc=!v.entregado?'pending-row':'';
+      return`<tr class="clickable-row ${rc}" onclick="if(!event.target.closest('.badge-clickable,.btn-icon'))abrirModalVenta(null,${v.id},null)">
+        <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
+        <td>${cl?cl.nombre:'-'}</td>
+        <td style="color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</td>
+        <td>${v.cant}</td><td class="mono">${fmt(v.precio)}</td>
+        <td>${desc>0?'<span class="badge badge-gray">-'+desc+'%</span>':'-'}</td>
+        <td class="mono">${fmt(v.total)}</td>
+        <td><span class="badge badge-blue">${v.pago}</span></td>
+        <td>${badgeOrigen(v.origen)}</td>
+        <td>${badgeEntrega(v.entregado,v.id)}</td>
+        <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+        <td><div class="actions-cell">
+          <button class="btn-icon" onclick="abrirModalVenta(null,${v.id},null)" title="Editar"><i class="ti ti-edit"></i></button>
+          <button class="btn-icon danger" onclick="eliminarVenta(${v.id})" title="Eliminar"><i class="ti ti-trash"></i></button>
+        </div></td>
+      </tr>`;
+    } else {
+      const{vs,v0,gv}=item;
+      const cl=DB.clientes.find(c=>c.id===v0.cid);
+      const totalG=vs.reduce((s,v)=>s+Number(v.total),0);
+      const cobradoG=vs.reduce((s,v)=>s+Number(v.cobrado),0);
+      const entregadoG=vs.every(v=>v.entregado);
+      const rc=!entregadoG?'pending-row':'';
+      const nombresP=vs.map(v=>{const p=PRODUCTOS.find(x=>x.id===v.pid);return p?p.nombre.split(' ').slice(0,2).join(' '):v.pid;}).join(' + ');
+      const eBadge=entregadoG
+        ?`<span class="badge badge-green badge-clickable" onclick="toggleEntregaGrupo(${gv})"><i class="ti ti-truck" style="font-size:11px"></i> Entregado</span>`
+        :`<span class="badge badge-purple badge-clickable" onclick="toggleEntregaGrupo(${gv})"><i class="ti ti-clock" style="font-size:11px"></i> A entregar</span>`;
+      const cBadge=cobradoG>=totalG
+        ?`<span class="badge badge-green badge-clickable" onclick="toggleCobroGrupo(${gv})"><i class="ti ti-circle-check" style="font-size:11px"></i> Cobrado</span>`
+        :`<span class="badge badge-amber badge-clickable" onclick="toggleCobroGrupo(${gv})"><i class="ti ti-clock" style="font-size:11px"></i> Pendiente</span>`;
+      return`<tr class="clickable-row ${rc}" onclick="if(!event.target.closest('.badge-clickable,.btn-icon'))abrirModalVenta(null,null,${gv})">
+        <td class="mono" style="color:var(--text2);font-size:12px">${v0.fecha}</td>
+        <td>${cl?cl.nombre:'-'}</td>
+        <td style="color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nombresP}">
+          ${vs.length>1?`<span class="badge badge-purple" style="font-size:10px;margin-right:3px">${vs.length} items</span>`:''}${nombresP}
+        </td>
+        <td style="color:var(--text3)">—</td><td class="mono" style="color:var(--text3)">—</td>
+        <td style="color:var(--text3)">—</td>
+        <td class="mono">${fmt(totalG)}</td>
+        <td><span class="badge badge-blue">${v0.pago}</span></td>
+        <td>${badgeOrigen(v0.origen)}</td>
+        <td>${eBadge}</td><td>${cBadge}</td>
+        <td><div class="actions-cell">
+          <button class="btn-icon" onclick="abrirModalVenta(null,null,${gv})" title="Editar"><i class="ti ti-edit"></i></button>
+          <button class="btn-icon danger" onclick="eliminarGrupoVenta(${gv})" title="Eliminar"><i class="ti ti-trash"></i></button>
+        </div></td>
+      </tr>`;
+    }
+  }).join('');
 }
 
 function renderCompras(){
@@ -1871,122 +2113,163 @@ async function guardarManualBatch(){
 function renderBoletasVenta(){
   const tbody=document.getElementById('boleta-ventas-tbody');
   if(!tbody)return;
-  tbody.innerHTML=[...DB.ventas].reverse().slice(0,50).map(v=>{
-    const cl=DB.clientes.find(c=>c.id===v.cid);
-    const p=PRODUCTOS.find(x=>x.id===v.pid);
-    return`<tr>
-      <td class="mono" style="font-size:12px;color:var(--text2)">${v.fecha}</td>
-      <td>${cl?cl.nombre:'-'}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${p?p.nombre:v.pid}</td>
-      <td>${v.cant}</td>
-      <td class="mono">${fmt(v.total)}</td>
-      <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
-      <td><button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="generarBoletaPDF(${v.id})">
-        <i class="ti ti-file-download"></i> PDF
-      </button></td>
-    </tr>`;
+  // Agrupar igual que renderVentas
+  const grupos={};const singles=[];
+  DB.ventas.forEach(v=>{
+    if(v.grupo_venta){const gk=String(v.grupo_venta);if(!grupos[gk])grupos[gk]=[];grupos[gk].push(v);}
+    else singles.push(v);
+  });
+  const items=[];
+  singles.forEach(v=>items.push({type:'single',v,sortId:Number(v.id)||0}));
+  Object.entries(grupos).forEach(([gk,vs])=>{
+    items.push({type:'group',vs,v0:vs[0],gv:Number(gk),sortId:Math.max(...vs.map(v=>Number(v.id)||0))});
+  });
+  items.sort((a,b)=>b.sortId-a.sortId);
+  const top=items.slice(0,50);
+
+  tbody.innerHTML=top.map(item=>{
+    if(item.type==='single'){
+      const v=item.v;
+      const cl=DB.clientes.find(c=>c.id===v.cid);
+      const p=PRODUCTOS.find(x=>x.id===v.pid);
+      return`<tr>
+        <td class="mono" style="font-size:12px;color:var(--text2)">${v.fecha}</td>
+        <td>${cl?cl.nombre:'-'}</td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${p?p.nombre:v.pid}</td>
+        <td>${v.cant}</td>
+        <td class="mono">${fmt(v.total)}</td>
+        <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
+        <td><button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="generarBoletaPDF(${v.id},null)">
+          <i class="ti ti-file-download"></i> PDF
+        </button></td>
+      </tr>`;
+    } else {
+      const{vs,v0,gv}=item;
+      const cl=DB.clientes.find(c=>c.id===v0.cid);
+      const totalG=vs.reduce((s,v)=>s+Number(v.total),0);
+      const cobradoG=vs.reduce((s,v)=>s+Number(v.cobrado),0);
+      const nombresP=vs.map(v=>{const p=PRODUCTOS.find(x=>x.id===v.pid);return p?p.nombre.split(' ').slice(0,2).join(' '):v.pid;}).join(', ');
+      return`<tr>
+        <td class="mono" style="font-size:12px;color:var(--text2)">${v0.fecha}</td>
+        <td>${cl?cl.nombre:'-'}</td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)" title="${nombresP}">
+          <span class="badge badge-purple" style="font-size:10px;margin-right:3px">${vs.length} items</span>${nombresP}
+        </td>
+        <td>—</td>
+        <td class="mono">${fmt(totalG)}</td>
+        <td>${cobradoG>=totalG?'<span class="badge badge-green"><i class="ti ti-circle-check" style="font-size:11px"></i> Cobrado</span>':'<span class="badge badge-amber"><i class="ti ti-clock" style="font-size:11px"></i> Pendiente</span>'}</td>
+        <td><button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="generarBoletaPDF(null,${gv})">
+          <i class="ti ti-file-download"></i> PDF
+        </button></td>
+      </tr>`;
+    }
   }).join('')||`<tr><td colspan="7" class="empty">Sin ventas</td></tr>`;
 }
 
-function generarBoletaPDF(vid){
-  const v=DB.ventas.find(x=>x.id===vid);
-  if(!v){alert('Venta no encontrada');return;}
-  const cl=DB.clientes.find(c=>c.id===v.cid);
-  const p=PRODUCTOS.find(x=>x.id===v.pid);
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
+function generarBoletaPDF(vid,grupoVenta){
+  // Resolver qué ventas incluir
+  let ventasPDF=[];
+  if(grupoVenta){
+    ventasPDF=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(grupoVenta));
+  } else if(vid){
+    const vBase=DB.ventas.find(x=>x.id===vid);
+    if(!vBase){alert('Venta no encontrada');return;}
+    if(vBase.grupo_venta){
+      ventasPDF=DB.ventas.filter(v=>Number(v.grupo_venta)===Number(vBase.grupo_venta));
+    } else {
+      ventasPDF=[vBase];
+    }
+  }
+  if(!ventasPDF.length){alert('Venta no encontrada');return;}
+  const v0=ventasPDF[0];
+  const cl=DB.clientes.find(c=>c.id===v0.cid);
+  const refId=grupoVenta||vid;
 
-  // Paleta
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
   const AZUL=[40,80,180];
   const GRIS=[100,100,110];
   const CLARO=[240,242,248];
   const NEGRO=[20,20,25];
 
   // ─ Encabezado
-  doc.setFillColor(...AZUL);
-  doc.rect(0,0,210,28,'F');
+  doc.setFillColor(...AZUL);doc.rect(0,0,210,28,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(18);doc.setFont('helvetica','bold');
   doc.text('DISTRIBUIDORA NORTH PAINT',14,12);
   doc.setFontSize(9);doc.setFont('helvetica','normal');
   doc.text('Colombres 785, M.J. Haedo, Buenos Aires  |  WhatsApp: 11 6859-2507  |  distribuidoranorthpaint@gmail.com',14,20);
 
-  // ─ Título boleta
-  doc.setFillColor(...CLARO);
-  doc.rect(0,28,210,16,'F');
-  doc.setTextColor(...AZUL);
-  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  // ─ Título
+  doc.setFillColor(...CLARO);doc.rect(0,28,210,16,'F');
+  doc.setTextColor(...AZUL);doc.setFontSize(13);doc.setFont('helvetica','bold');
   doc.text('COMPROBANTE DE VENTA',14,39);
-  doc.setTextColor(...GRIS);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  const nro='N° '+String(vid).slice(-6).padStart(6,'0');
+  doc.setTextColor(...GRIS);doc.setFontSize(9);doc.setFont('helvetica','normal');
+  const nro='N° '+String(refId).slice(-6).padStart(6,'0');
   doc.text(nro,196,39,{align:'right'});
 
-  // ─ Datos del cliente
-  doc.setTextColor(...NEGRO);
-  doc.setFontSize(10);doc.setFont('helvetica','bold');
+  // ─ Cliente
+  doc.setTextColor(...NEGRO);doc.setFontSize(10);doc.setFont('helvetica','bold');
   doc.text('CLIENTE',14,54);
   doc.setFont('helvetica','normal');doc.setFontSize(10);
   doc.text(cl?cl.nombre:'—',14,61);
   if(cl&&cl.zona)doc.text(cl.zona+(cl.dir?' — '+cl.dir:''),14,67);
   if(cl&&cl.tel)doc.text('Tel: '+cl.tel,14,73);
 
-  // ─ Fecha
+  // ─ Fecha / Pago
   doc.setFont('helvetica','bold');doc.setFontSize(10);
   doc.text('FECHA',140,54);
   doc.setFont('helvetica','normal');
-  doc.text(v.fecha,140,61);
-  doc.text('Forma de pago: '+v.pago,140,67);
+  doc.text(v0.fecha,140,61);
+  doc.text('Forma de pago: '+v0.pago,140,67);
 
-  // ─ Tabla de items
-  doc.setFillColor(...AZUL);
-  doc.rect(14,82,182,8,'F');
+  // ─ Tabla items (dinámica)
+  let yPos=82;
+  doc.setFillColor(...AZUL);doc.rect(14,yPos,182,8,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
-  doc.text('PRODUCTO',16,87.5);
-  doc.text('UNIDAD',100,87.5);
-  doc.text('CANT',130,87.5,{align:'right'});
-  doc.text('PRECIO UNIT.',160,87.5,{align:'right'});
-  doc.text('TOTAL',194,87.5,{align:'right'});
+  doc.text('PRODUCTO',16,yPos+5.5);
+  doc.text('UNIDAD',105,yPos+5.5);
+  doc.text('CANT',136,yPos+5.5,{align:'right'});
+  doc.text('PRECIO UNIT.',163,yPos+5.5,{align:'right'});
+  doc.text('SUBTOTAL',194,yPos+5.5,{align:'right'});
+  yPos+=8;
 
-  doc.setFillColor(248,249,252);
-  doc.rect(14,90,182,10,'F');
-  doc.setTextColor(...NEGRO);doc.setFontSize(9);doc.setFont('helvetica','normal');
-  const prodNombre=p?p.nombre:v.pid;
-  doc.text(prodNombre.slice(0,45),16,96.5);
-  doc.text(p?p.unidad:'—',100,96.5);
-  doc.text(String(v.cant),130,96.5,{align:'right'});
-  doc.text('$'+Math.round(v.precio).toLocaleString('es-AR'),160,96.5,{align:'right'});
-  doc.text('$'+Math.round(v.total).toLocaleString('es-AR'),194,96.5,{align:'right'});
+  let grandTotal=0;
+  ventasPDF.forEach((v,i)=>{
+    const p=PRODUCTOS.find(x=>x.id===v.pid);
+    const bg=i%2===0?[248,249,252]:[255,255,255];
+    doc.setFillColor(...bg);doc.rect(14,yPos,182,10,'F');
+    doc.setTextColor(...NEGRO);doc.setFontSize(9);doc.setFont('helvetica','normal');
+    const nombre=(p?p.nombre:v.pid).slice(0,42);
+    doc.text(nombre,16,yPos+6.5);
+    doc.text(p?p.unidad:'—',105,yPos+6.5);
+    doc.text(String(v.cant),136,yPos+6.5,{align:'right'});
+    doc.text('$'+Math.round(v.precio).toLocaleString('es-AR'),163,yPos+6.5,{align:'right'});
+    doc.text('$'+Math.round(v.total).toLocaleString('es-AR'),194,yPos+6.5,{align:'right'});
+    grandTotal+=Number(v.total);
+    yPos+=10;
+  });
 
-  // ─ Totales
-  doc.setDrawColor(...GRIS);
-  doc.line(14,106,196,106);
-  doc.setFont('helvetica','bold');doc.setFontSize(11);
-  doc.setTextColor(...AZUL);
-  doc.text('TOTAL',155,115,{align:'right'});
+  // ─ Total
+  doc.setDrawColor(...GRIS);doc.line(14,yPos+4,196,yPos+4);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...AZUL);
+  doc.text('TOTAL',158,yPos+13,{align:'right'});
   doc.setFontSize(13);
-  doc.text('$'+Math.round(v.total).toLocaleString('es-AR'),194,115,{align:'right'});
+  doc.text('$'+Math.round(grandTotal).toLocaleString('es-AR'),194,yPos+13,{align:'right'});
 
-  // ─ Estado de cobro
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.setTextColor(...GRIS);
-  const cobStatus=v.cobrado>=v.total?'✓ COBRADO':'PENDIENTE DE COBRO';
-  doc.text('Estado: '+cobStatus,14,115);
-
-  if(v.notas){
-    doc.setFontSize(8);
-    doc.text('Notas: '+v.notas,14,124);
-  }
+  // ─ Estado cobro / notas
+  const cobradoTotal=ventasPDF.reduce((s,v)=>s+Number(v.cobrado),0);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(...GRIS);
+  doc.text('Estado: '+(cobradoTotal>=grandTotal?'✓ COBRADO':'PENDIENTE DE COBRO'),14,yPos+13);
+  if(v0.notas){doc.setFontSize(8);doc.text('Notas: '+v0.notas,14,yPos+22);}
 
   // ─ Footer
-  doc.setFillColor(...AZUL);
-  doc.rect(0,278,210,19,'F');
+  doc.setFillColor(...AZUL);doc.rect(0,278,210,19,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(8);
   doc.text('¡Gracias por su compra! | @distribuidora.northpaint',105,286,{align:'center'});
   doc.text('Este comprobante no tiene validez fiscal.',105,292,{align:'center'});
 
-  const nombreArchivo=`Boleta_NorthPaint_${nro.replace('N° ','')}_${v.fecha}.pdf`;
-  doc.save(nombreArchivo);
+  doc.save(`Boleta_NorthPaint_${nro.replace('N° ','')}_${v0.fecha}.pdf`);
 }
 
 // ══════════════════════════════════════════
