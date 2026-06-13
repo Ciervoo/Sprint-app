@@ -299,7 +299,12 @@ tr.clickable-row:hover td{background:var(--bg4)}
 
     <div class="section" id="sec-stock">
       <div class="top-bar"><h2>Stock actual</h2></div>
-      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Unidad</th><th>Stock</th><th>Costo unit.</th><th>Precio venta</th><th>Margen</th></tr></thead><tbody id="stock-tbody"></tbody></table></div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="setStockMarca('',this)">Todos</div>
+        <div class="tab" onclick="setStockMarca('Sprint',this)">Sprint</div>
+        <div class="tab" onclick="setStockMarca('Toro',this)">Toro</div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Marca</th><th>Unidad</th><th>Stock</th><th>Costo unit.</th><th>Precio venta</th><th>Margen</th></tr></thead><tbody id="stock-tbody"></tbody></table></div>
     </div>
 
     <div class="section" id="sec-analitica">
@@ -581,29 +586,31 @@ const {createClient}=supabase;
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const PRODUCTOS=[
-  {id:'H62',nombre:'Barniz H62 HS Secado Rapido',unidad:'kit 7.5lt',precio:283950,costo:184268},
-  {id:'H67',nombre:'Barniz H67 UHS GT',unidad:'kit 1.5lt',precio:69700,costo:45305},
-  {id:'H69-1',nombre:'Barniz H69 UHS Vantix Plus',unidad:'kit 1.5lt',precio:106150,costo:69000},
-  {id:'H69-7',nombre:'Barniz H69 UHS Vantix Plus',unidad:'kit 7.5lt',precio:486300,costo:316095},
-  {id:'H59-1',nombre:'Barniz H59 HS Curado Rapido',unidad:'kit 1.5lt',precio:85700,costo:55705},
-  {id:'H59-7',nombre:'Barniz H59 HS Curado Rapido',unidad:'kit 7.5lt',precio:406800,costo:264420},
-  {id:'H77',nombre:'Barniz H77 UHS Air-Wide',unidad:'kit 1.5lt',precio:89640,costo:58266},
-  {id:'F40',nombre:'Primer F40 5lt kit',unidad:'kit 5lt',precio:217080,costo:141102},
-  {id:'F56',nombre:'Primer GT 2K 1,2lt',unidad:'kit 1.2lt',precio:65000,costo:42250},
-  {id:'A14-1',nombre:'Primer Nitro A14 Gris',unidad:'1lt',precio:43000,costo:27950},
-  {id:'A14-3',nombre:'Primer Nitro A14 Gris',unidad:'3lt',precio:130000,costo:84500},
-  {id:'S99',nombre:'Masilla Poliester S99 Blanca',unidad:'1lt',precio:50300,costo:32695},
-  {id:'S97',nombre:'Masilla Poliester S97 Beige',unidad:'1lt',precio:50300,costo:32695},
-  {id:'S61',nombre:'Masilla One Light S61',unidad:'1lt',precio:34950,costo:22718},
-  {id:'S61-3',nombre:'Masilla One Light S61',unidad:'3lt',precio:84850,costo:55153},
-  {id:'S20',nombre:'Masilla S20 Aluminio',unidad:'1.35kg',precio:48500,costo:31525},
-  {id:'B320',nombre:'Sellador Extra Body B320',unidad:'1lt',precio:46900,costo:30485},
-  {id:'GLAD',nombre:'Gladiator (soplete)',unidad:'1lt',precio:105000,costo:68250},
-  {id:'THINNER',nombre:'Thinner Universal',unidad:'20lt',precio:98000,costo:55035},
-  {id:'DILUYENTE',nombre:'Diluyente Mediun',unidad:'20lt',precio:228000,costo:82898},
-  {id:'DILUYENTE-4',nombre:'Diluyente Mediun',unidad:'4lt',precio:43000,costo:16569},
-  {id:'DESENG',nombre:'Desengrasante Mediun',unidad:'20lt',precio:128000,costo:52502},
-  {id:'DESENG-4',nombre:'Desengrasante Mediun',unidad:'4lt',precio:39000,costo:13615},
+  // ── Sprint / Mediun ──
+  {id:'H62',    nombre:'Barniz H62 HS Secado Rapido',  unidad:'kit 7.5lt', precio:283950,costo:184268, marca:'Sprint'},
+  {id:'H67',    nombre:'Barniz H67 UHS GT',             unidad:'kit 1.5lt', precio:69700, costo:45305,  marca:'Sprint'},
+  {id:'H69-1',  nombre:'Barniz H69 UHS Vantix Plus',   unidad:'kit 1.5lt', precio:106150,costo:69000,  marca:'Sprint'},
+  {id:'H69-7',  nombre:'Barniz H69 UHS Vantix Plus',   unidad:'kit 7.5lt', precio:486300,costo:316095, marca:'Sprint'},
+  {id:'H59-1',  nombre:'Barniz H59 HS Curado Rapido',  unidad:'kit 1.5lt', precio:85700, costo:55705,  marca:'Sprint'},
+  {id:'H59-7',  nombre:'Barniz H59 HS Curado Rapido',  unidad:'kit 7.5lt', precio:406800,costo:264420, marca:'Sprint'},
+  {id:'H77',    nombre:'Barniz H77 UHS Air-Wide',       unidad:'kit 1.5lt', precio:89640, costo:58266,  marca:'Sprint'},
+  {id:'F40',    nombre:'Primer F40 5lt kit',            unidad:'kit 5lt',   precio:217080,costo:141102, marca:'Sprint'},
+  {id:'F56',    nombre:'Primer GT 2K 1,2lt',            unidad:'kit 1.2lt', precio:65000, costo:42250,  marca:'Sprint'},
+  {id:'A14-1',  nombre:'Primer Nitro A14 Gris',        unidad:'1lt',       precio:43000, costo:27950,  marca:'Sprint'},
+  {id:'A14-3',  nombre:'Primer Nitro A14 Gris',        unidad:'3lt',       precio:130000,costo:84500,  marca:'Sprint'},
+  {id:'S99',    nombre:'Masilla Poliester S99 Blanca', unidad:'1lt',       precio:50300, costo:32695,  marca:'Sprint'},
+  {id:'S97',    nombre:'Masilla Poliester S97 Beige',  unidad:'1lt',       precio:50300, costo:32695,  marca:'Sprint'},
+  {id:'S61',    nombre:'Masilla One Light S61',         unidad:'1lt',       precio:34950, costo:22718,  marca:'Sprint'},
+  {id:'S61-3',  nombre:'Masilla One Light S61',         unidad:'3lt',       precio:84850, costo:55153,  marca:'Sprint'},
+  {id:'S20',    nombre:'Masilla S20 Aluminio',          unidad:'1.35kg',    precio:48500, costo:31525,  marca:'Sprint'},
+  {id:'B320',   nombre:'Sellador Extra Body B320',      unidad:'1lt',       precio:46900, costo:30485,  marca:'Sprint'},
+  {id:'DILUYENTE',  nombre:'Diluyente Mediun',          unidad:'20lt',      precio:228000,costo:82898,  marca:'Sprint'},
+  {id:'DILUYENTE-4',nombre:'Diluyente Mediun',          unidad:'4lt',       precio:43000, costo:16569,  marca:'Sprint'},
+  {id:'DESENG',     nombre:'Desengrasante Mediun',      unidad:'20lt',      precio:128000,costo:52502,  marca:'Sprint'},
+  {id:'DESENG-4',   nombre:'Desengrasante Mediun',      unidad:'4lt',       precio:39000, costo:13615,  marca:'Sprint'},
+  // ── Toro ──
+  {id:'GLAD',   nombre:'Gladiator (soplete)',            unidad:'1lt',       precio:105000,costo:68250,  marca:'Toro'},
+  {id:'THINNER',nombre:'Thinner Universal',              unidad:'20lt',      precio:98000, costo:55035,  marca:'Toro'},
 ];
 
 let DB={ventas:[],compras:[],stock:{},clientes:[],pagos:[]};
@@ -1146,15 +1153,19 @@ async function guardarPago(){
 
 // ── RENDERS ──
 function renderDashboard(){
-  const tv=DB.ventas.reduce((a,v)=>a+Number(v.total),0);
-  const tg=DB.ventas.reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0);
+  // Solo cuentan ventas entregadas Y cobradas (dinero real en mano)
+  const ventasReales=DB.ventas.filter(v=>v.entregado&&Number(v.cobrado)>=Number(v.total));
+  const tv=ventasReales.reduce((a,v)=>a+Number(v.total),0);
+  const tg=ventasReales.reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0);
+  // Devengado: pedidos que existen pero no están entregados O no cobrados
+  const devengado=DB.ventas.filter(v=>!v.entregado||Number(v.cobrado)<Number(v.total)).reduce((a,v)=>a+Number(v.total),0);
   const td=DB.clientes.reduce((a,c)=>a+(Number(c.deuda)||0),0);
   const pendEntrega=DB.ventas.filter(v=>!v.entregado).length;
   document.getElementById('dash-metrics').innerHTML=`
-    <div class="metric"><div class="metric-label">Ventas totales</div><div class="metric-val">${fmt(tv)}</div></div>
-    <div class="metric"><div class="metric-label">Ganancia bruta</div><div class="metric-val" style="color:var(--green)">${fmt(tg)}</div></div>
-    <div class="metric"><div class="metric-label">Deuda clientes</div><div class="metric-val" style="color:var(--red)">${fmt(td)}</div></div>
-    <div class="metric"><div class="metric-label">A entregar</div><div class="metric-val" style="color:var(--purple)">${pendEntrega}</div></div>`;
+    <div class="metric"><div class="metric-label">Cobrado y entregado</div><div class="metric-val">${fmt(tv)}</div></div>
+    <div class="metric"><div class="metric-label">Ganancia real</div><div class="metric-val" style="color:var(--green)">${fmt(tg)}</div></div>
+    <div class="metric"><div class="metric-label" title="Pedidos no entregados o no cobrados aún">Devengado (pend.)</div><div class="metric-val" style="color:var(--amber)">${fmt(devengado)}</div></div>
+    <div class="metric"><div class="metric-label">Deuda clientes</div><div class="metric-val" style="color:var(--red)">${fmt(td)}</div></div>`;
   const ul=[...DB.ventas].reverse().slice(0,8);
   document.getElementById('dash-tbody').innerHTML=ul.length?ul.map(v=>{
     const cl=DB.clientes.find(c=>c.id===v.cid);
@@ -1201,11 +1212,21 @@ function renderCompras(){
     return`<tr class="clickable-row" onclick="if(!event.target.closest('.btn-icon'))editarCompra(${c.id})"><td class="mono" style="color:var(--text2);font-size:12px">${c.fecha}</td><td>${p?p.nombre+' ('+p.unidad+')':c.pid}</td><td>${c.cant}</td><td class="mono">${fmt(c.costo)}</td><td class="mono">${fmt(c.costo*c.cant)}</td><td><div class="actions-cell"><button class="btn-icon" onclick="editarCompra(${c.id})" title="Editar"><i class="ti ti-edit"></i></button><button class="btn-icon danger" onclick="eliminarCompra(${c.id})" title="Eliminar"><i class="ti ti-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Sin compras registradas</td></tr>`;
 }
 
+let stockMarcaFiltro='';
+function setStockMarca(marca,el){
+  stockMarcaFiltro=marca;
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderStock();
+}
 function renderStock(){
-  document.getElementById('stock-tbody').innerHTML=PRODUCTOS.map(p=>{
+  const lista=stockMarcaFiltro?PRODUCTOS.filter(p=>p.marca===stockMarcaFiltro):PRODUCTOS;
+  const MARCA_BADGE={Sprint:'badge-blue',Toro:'badge-amber'};
+  document.getElementById('stock-tbody').innerHTML=lista.map(p=>{
     const s=DB.stock[p.id]||0;
     const margen=Math.round((1-p.costo/p.precio)*100);
-    return`<tr><td>${p.nombre}</td><td style="color:var(--text2)">${p.unidad}</td><td>${s<=0?'<span class="badge badge-red">Sin stock</span>':'<span class="mono">'+s+'</span>'}</td><td class="mono" style="color:var(--text2)">${fmt(p.costo)}</td><td class="mono">${fmt(p.precio)}</td><td class="profit-pos">${margen}%</td></tr>`}).join('');
+    const marcaBadge=`<span class="badge ${MARCA_BADGE[p.marca]||'badge-gray'}" style="font-size:10px">${p.marca||'—'}</span>`;
+    return`<tr><td>${p.nombre}</td><td>${marcaBadge}</td><td style="color:var(--text2)">${p.unidad}</td><td>${s<=0?'<span class="badge badge-red">Sin stock</span>':'<span class="mono">'+s+'</span>'}</td><td class="mono" style="color:var(--text2)">${fmt(p.costo)}</td><td class="mono">${fmt(p.precio)}</td><td class="profit-pos">${margen}%</td></tr>`}).join('');
 }
 
 function renderClientes(){
@@ -1325,8 +1346,9 @@ function renderAnalitica(){
   const meses=[];
   for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);meses.push(d.toISOString().slice(0,7));}
   const mesLabels=meses.map(m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1).toLocaleString('es-AR',{month:'short',year:'2-digit'});});
-  const mesVentas=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m).reduce((a,v)=>a+Number(v.total),0));
-  const mesGanancia=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m).reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0));
+  // Solo ventas entregadas Y cobradas para los gráficos
+  const mesVentas=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m&&v.entregado&&Number(v.cobrado)>=Number(v.total)).reduce((a,v)=>a+Number(v.total),0));
+  const mesGanancia=meses.map(m=>DB.ventas.filter(v=>v.fecha.slice(0,7)===m&&v.entregado&&Number(v.cobrado)>=Number(v.total)).reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0));
   charts.meses=new Chart(document.getElementById('chart-meses'),{
     type:'bar',
     data:{labels:mesLabels,datasets:[
@@ -1397,14 +1419,18 @@ function renderCorteMensual(){
   const NOMBRES_MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   const filas=meses.map(m=>{
-    const ventas=DB.ventas.filter(v=>v.fecha&&v.fecha.startsWith(m));
+    const todasVentas=DB.ventas.filter(v=>v.fecha&&v.fecha.startsWith(m));
+    // Solo ventas entregadas Y cobradas para ingresos reales
+    const ventasReales=todasVentas.filter(v=>v.entregado&&Number(v.cobrado)>=Number(v.total));
+    const ventasDevengado=todasVentas.filter(v=>!v.entregado||Number(v.cobrado)<Number(v.total));
     const compras=DB.compras.filter(c=>c.fecha&&c.fecha.startsWith(m));
-    const totalVentas=ventas.reduce((a,v)=>a+Number(v.total),0);
+    const totalVentas=ventasReales.reduce((a,v)=>a+Number(v.total),0);
+    const totalDevengado=ventasDevengado.reduce((a,v)=>a+Number(v.total),0);
     const totalCompras=compras.reduce((a,c)=>a+(Number(c.costo)*Number(c.cant)),0);
     const ganancia=totalVentas-totalCompras;
     const margen=totalVentas>0?Math.round(ganancia/totalVentas*100):0;
     const [anio,mes]=m.split('-');
-    return{label:NOMBRES_MES[parseInt(mes)-1]+' '+anio,totalVentas,totalCompras,ganancia,margen,vacio:ventas.length===0&&compras.length===0};
+    return{label:NOMBRES_MES[parseInt(mes)-1]+' '+anio,totalVentas,totalDevengado,totalCompras,ganancia,margen,vacio:todasVentas.length===0&&compras.length===0};
   });
 
   // Máximo de ventas para la barra proporcional
@@ -1415,11 +1441,12 @@ function renderCorteMensual(){
 
   el.innerHTML=`
   <div style="overflow-x:auto">
-    <table style="width:100%;min-width:520px;border-collapse:collapse">
+    <table style="width:100%;min-width:620px;border-collapse:collapse">
       <thead>
         <tr>
           <th style="text-align:left;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px">Mes</th>
-          <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px">Ventas</th>
+          <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--green);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px" title="Ventas entregadas y cobradas">Cobrado</th>
+          <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--amber);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px" title="Pedidos sin entregar o sin cobrar">Devengado</th>
           <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px">Compras</th>
           <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px">Ganancia</th>
           <th style="text-align:right;padding:8px 12px;font-size:10px;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px">Margen</th>
@@ -1435,14 +1462,15 @@ function renderCorteMensual(){
           const bgRow=esUltimo?'background:rgba(91,141,238,0.06)':'';
           if(f.vacio)return`<tr style="${bgRow}">
             <td style="padding:9px 12px;font-size:13px;font-weight:${esUltimo?600:400};color:${esUltimo?'var(--text)':'var(--text2)'};border-bottom:1px solid var(--border)">${f.label}${esUltimo?' <span style="font-size:10px;color:var(--accent);background:rgba(91,141,238,0.12);padding:1px 6px;border-radius:10px;margin-left:4px">mes actual</span>':''}</td>
-            <td colspan="5" style="padding:9px 12px;font-size:12px;color:var(--text3);border-bottom:1px solid var(--border);text-align:center">Sin registros</td>
+            <td colspan="6" style="padding:9px 12px;font-size:12px;color:var(--text3);border-bottom:1px solid var(--border);text-align:center">Sin registros</td>
           </tr>`;
           return`<tr style="${bgRow}">
             <td style="padding:9px 12px;font-size:13px;font-weight:${esUltimo?600:400};color:${esUltimo?'var(--text)':'var(--text2)'};border-bottom:1px solid var(--border)">${f.label}${esUltimo?' <span style="font-size:10px;color:var(--accent-light);background:rgba(91,141,238,0.12);padding:1px 6px;border-radius:10px;margin-left:4px">mes actual</span>':''}</td>
-            <td style="padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;text-align:right;border-bottom:1px solid var(--border)">${fmt(f.totalVentas)}</td>
+            <td style="padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;color:var(--green);text-align:right;border-bottom:1px solid var(--border)">${f.totalVentas>0?fmt(f.totalVentas):'-'}</td>
+            <td style="padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;color:var(--amber);text-align:right;border-bottom:1px solid var(--border)">${f.totalDevengado>0?fmt(f.totalDevengado):'-'}</td>
             <td style="padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;color:var(--red);text-align:right;border-bottom:1px solid var(--border)">${f.totalCompras>0?'- '+fmt(f.totalCompras):'-'}</td>
             <td style="padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;color:${gananciaColor};font-weight:600;text-align:right;border-bottom:1px solid var(--border)">${fmt(f.ganancia)}</td>
-            <td style="padding:9px 12px;font-size:13px;font-weight:500;color:${margenColor};text-align:right;border-bottom:1px solid var(--border)">${f.margen}%</td>
+            <td style="padding:9px 12px;font-size:13px;font-weight:500;color:${margenColor};text-align:right;border-bottom:1px solid var(--border)">${f.margen>0?f.margen+'%':'-'}</td>
             <td style="padding:9px 12px;border-bottom:1px solid var(--border)">
               <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
                 <div style="height:6px;width:${barW}%;background:linear-gradient(90deg,rgba(91,141,238,0.6),rgba(74,222,128,0.7));border-radius:3px;transition:width 0.4s"></div>
@@ -1454,7 +1482,8 @@ function renderCorteMensual(){
       <tfoot>
         <tr style="background:var(--bg3)">
           <td style="padding:10px 12px;font-size:12px;font-weight:600;color:var(--text2)">TOTAL</td>
-          <td style="padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;font-weight:600;text-align:right">${fmt(filas.reduce((a,f)=>a+f.totalVentas,0))}</td>
+          <td style="padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;font-weight:600;color:var(--green);text-align:right">${fmt(filas.reduce((a,f)=>a+f.totalVentas,0))}</td>
+          <td style="padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;font-weight:600;color:var(--amber);text-align:right">${fmt(filas.reduce((a,f)=>a+f.totalDevengado,0))}</td>
           <td style="padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;color:var(--red);font-weight:600;text-align:right">- ${fmt(filas.reduce((a,f)=>a+f.totalCompras,0))}</td>
           <td style="padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;color:var(--green);font-weight:700;text-align:right">${fmt(filas.reduce((a,f)=>a+f.ganancia,0))}</td>
           <td style="padding:10px 12px;font-size:12px;font-weight:500;text-align:right;color:var(--text2)">
