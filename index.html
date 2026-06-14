@@ -732,7 +732,7 @@ const PRODUCTOS=[
   {id:'THINNER',nombre:'Thinner Universal',              unidad:'20lt',      precio:98000, costo:62293,  marca:'Toro'},
 ];
 
-let DB={ventas:[],compras:[],stock:{},clientes:[],pagos:[]};
+let DB={ventas:[],compras:[],stock:{},clientes:[],pagos:[],config:{}};
 let clienteActivo=null;
 let ventaEditandoId=null;
 let ventaEditandoGrupo=null;
@@ -752,13 +752,14 @@ function showToast(msg,type='ok'){
 }
 
 // ── META MENSUAL ──
-function saveMeta(v){
+async function saveMeta(v){
   const val=parseInt(v)||0;
-  localStorage.setItem('sprint_meta_mensual',val);
+  DB.config.meta_mensual=val;
+  await sb.from('config').upsert({key:'meta_mensual',value:String(val)},{onConflict:'key'});
   renderDashboard();
 }
 function loadMeta(){
-  return parseInt(localStorage.getItem('sprint_meta_mensual'))||0;
+  return parseInt(DB.config.meta_mensual)||0;
 }
 
 // ── FILTROS VENTAS ──
@@ -782,12 +783,13 @@ function today(){return new Date().toISOString().slice(0,10)}
 async function initApp(){
   const overlay=document.getElementById('loading-overlay');
   try{
-    const [v,c,comp,p,s]=await Promise.all([
+    const [v,c,comp,p,s,cfg]=await Promise.all([
       sb.from('ventas').select('*').order('id'),
       sb.from('clientes').select('*'),
       sb.from('compras').select('*').order('id'),
       sb.from('pagos').select('*'),
       sb.from('stock').select('*'),
+      sb.from('config').select('*'),
     ]);
     if(v.error)throw v.error;
     DB.ventas=(v.data||[]).map(x=>({...x,entregado:x.entregado??true}));
@@ -796,6 +798,8 @@ async function initApp(){
     DB.pagos=p.data||[];
     DB.stock={};
     (s.data||[]).forEach(row=>{DB.stock[row.pid]=Number(row.cantidad);});
+    DB.config={};
+    (cfg.data||[]).forEach(row=>{DB.config[row.key]=row.value;});
     const missing=PRODUCTOS.filter(pr=>DB.stock[pr.id]===undefined);
     if(missing.length){
       await sb.from('stock').insert(missing.map(pr=>({pid:pr.id,cantidad:0})));
@@ -813,10 +817,8 @@ async function initApp(){
   overlay.style.display='none';
   checkMigracion();
   poblarSelectTalleres();
-  // Restaurar meta mensual guardada
-  const metaSaved=loadMeta();
   const mi=document.getElementById('dash-meta-input');
-  if(mi&&metaSaved)mi.value=metaSaved;
+  if(mi){const mv=loadMeta();if(mv)mi.value=mv;}
   renderDashboard();
 }
 
