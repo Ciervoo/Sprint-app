@@ -340,6 +340,14 @@ tr.clickable-row:hover td{background:var(--bg4)}
           <div id="dash-deuda-content"><span style="font-size:12px;color:var(--text3)">Sin deudas</span></div>
         </div>
       </div>
+      <!-- Fila 3: clientes dormidos -->
+      <div class="dash-card" id="dash-dormidos-panel" style="margin-bottom:16px">
+        <div class="dash-card-title" style="justify-content:space-between">
+          <span><i class="ti ti-moon" style="color:var(--purple)"></i> Clientes sin actividad hace 30+ días</span>
+          <span style="font-size:10px;color:var(--text3);cursor:pointer;font-weight:400" onclick="showSection('clientes',document.querySelector('.nav-item[onclick*=clientes]'));setClientesFiltro('dormidos',document.querySelector('.tab'))">Ver todos →</span>
+        </div>
+        <div id="dash-dormidos-content"><span style="font-size:12px;color:var(--text3)">Calculando...</span></div>
+      </div>
       <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Últimas ventas</div>
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Total</th><th>Origen</th><th>Entrega</th><th>Cobro</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
     </div>
@@ -446,6 +454,11 @@ tr.clickable-row:hover td{background:var(--bg4)}
         <button class="btn btn-primary" onclick="abrirNuevoCliente()"><i class="ti ti-plus"></i> Nuevo cliente</button>
       </div>
       <input class="search-bar" placeholder="Buscar por nombre o zona..." id="search-cliente" oninput="renderClientes()">
+      <div class="tab-bar">
+        <div class="tab active" onclick="setClientesFiltro('todos',this)">Todos</div>
+        <div class="tab" onclick="setClientesFiltro('dormidos',this)"><i class="ti ti-moon" style="font-size:12px;margin-right:4px"></i>Sin actividad 30+ días</div>
+        <div class="tab" onclick="setClientesFiltro('nunca',this)"><i class="ti ti-user-off" style="font-size:12px;margin-right:4px"></i>Nunca compraron</div>
+      </div>
       <div id="clientes-list"></div>
     </div>
 
@@ -760,6 +773,24 @@ async function saveMeta(v){
 }
 function loadMeta(){
   return parseInt(DB.config.meta_mensual)||0;
+}
+
+// ── HELPERS CLIENTES ──
+function diasDesdeUltimaCompra(cid){
+  const fechas=DB.ventas.filter(v=>v.cid===cid&&v.fecha).map(v=>v.fecha).sort();
+  if(!fechas.length)return null;
+  const ultima=new Date(fechas[fechas.length-1]);
+  return Math.floor((new Date()-ultima)/(1000*60*60*24));
+}
+
+let clientesFiltroActivo='todos';
+function setClientesFiltro(filtro,el){
+  clientesFiltroActivo=filtro;
+  if(el){
+    el.closest('.tab-bar').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  renderClientes();
 }
 
 // ── FILTROS VENTAS ──
@@ -1573,6 +1604,36 @@ function renderDashboard(){
     </div>`).join('');
   }
 
+  // ── CLIENTES DORMIDOS ──
+  const dormEl=document.getElementById('dash-dormidos-content');
+  const dormidos=DB.clientes.filter(c=>{const d=diasDesdeUltimaCompra(c.id);return d!==null&&d>=30;})
+    .sort((a,b)=>(diasDesdeUltimaCompra(b.id)||0)-(diasDesdeUltimaCompra(a.id)||0)).slice(0,6);
+  const nunca=DB.clientes.filter(c=>!DB.ventas.some(v=>v.cid===c.id));
+  if(!dormidos.length&&!nunca.length){
+    dormEl.innerHTML='<span style="font-size:12px;color:var(--green)"><i class="ti ti-circle-check"></i> Todos los clientes compraron recientemente</span>';
+  } else {
+    dormEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${dormidos.map(c=>{
+        const dias=diasDesdeUltimaCompra(c.id);
+        return`<div onclick="verCliente('${c.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:5px 10px">
+          <div class="avatar" style="width:24px;height:24px;font-size:9px;background:rgba(167,139,250,0.15);border-color:rgba(167,139,250,0.3);color:var(--purple)">${c.nombre.slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre}</div>
+            <div style="font-size:10px;color:var(--purple)">${dias}d sin comprar</div>
+          </div>
+        </div>`;
+      }).join('')}
+      ${nunca.map(c=>`<div onclick="verCliente('${c.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:rgba(153,153,170,0.06);border:1px solid var(--border);border-radius:8px;padding:5px 10px">
+          <div class="avatar" style="width:24px;height:24px;font-size:9px">${c.nombre.slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre}</div>
+            <div style="font-size:10px;color:var(--text3)">Nunca compró</div>
+          </div>
+        </div>`).join('')}
+      ${dormidos.length>=6?`<span style="font-size:11px;color:var(--text3);align-self:center">+${DB.clientes.filter(c=>{const d=diasDesdeUltimaCompra(c.id);return d!==null&&d>=30;}).length-6} más</span>`:''}
+    </div>`;
+  }
+
   // ── ÚLTIMAS VENTAS ──
   const ul=[...DB.ventas].reverse().slice(0,8);
   document.getElementById('dash-tbody').innerHTML=ul.length?ul.map(v=>{
@@ -1847,24 +1908,50 @@ async function recalcularStock(){
 
 function renderClientes(){
   const q=(document.getElementById('search-cliente')||{}).value||'';
-  const lista=DB.clientes.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())||(c.zona||'').toLowerCase().includes(q.toLowerCase()));
+  let lista=DB.clientes.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())||(c.zona||'').toLowerCase().includes(q.toLowerCase()));
+  // Aplicar filtro de actividad
+  if(clientesFiltroActivo==='dormidos'){
+    lista=lista.filter(c=>{const d=diasDesdeUltimaCompra(c.id);return d!==null&&d>=30;});
+  } else if(clientesFiltroActivo==='nunca'){
+    lista=lista.filter(c=>!DB.ventas.some(v=>v.cid===c.id));
+  }
+  // Ordenar dormidos primero (más días sin comprar arriba)
+  if(clientesFiltroActivo==='dormidos'){
+    lista.sort((a,b)=>(diasDesdeUltimaCompra(b.id)||0)-(diasDesdeUltimaCompra(a.id)||0));
+  }
   const el=document.getElementById('clientes-list');
-  if(!lista.length){el.innerHTML='<div class="empty">Sin clientes registrados</div>';return;}
+  if(!lista.length){
+    const msg={dormidos:'Ningún cliente lleva 30+ días sin comprar 🎉',nunca:'Todos los clientes ya compraron',todos:'Sin clientes registrados'};
+    el.innerHTML=`<div class="empty">${msg[clientesFiltroActivo]||'Sin clientes'}</div>`;return;
+  }
   el.innerHTML=lista.map(c=>{
     const vc=DB.ventas.filter(v=>v.cid===c.id);
     const pendientes=vc.filter(v=>!v.entregado).length;
+    const dias=diasDesdeUltimaCompra(c.id);
+    // Badge de última actividad
+    let actBadge='';
+    if(dias===null){
+      actBadge='<span class="badge badge-gray" style="font-size:10px"><i class="ti ti-user-off" style="font-size:10px"></i> Nunca compró</span>';
+    } else if(dias>=30){
+      actBadge=`<span class="badge badge-purple" style="font-size:10px" title="Última compra hace ${dias} días"><i class="ti ti-moon" style="font-size:10px"></i> ${dias}d sin comprar</span>`;
+    } else if(dias>=14){
+      actBadge=`<span class="badge badge-amber" style="font-size:10px" title="Última compra hace ${dias} días"><i class="ti ti-clock" style="font-size:10px"></i> Hace ${dias}d</span>`;
+    } else {
+      actBadge=`<span class="badge badge-green" style="font-size:10px" title="Última compra hace ${dias} días"><i class="ti ti-check" style="font-size:10px"></i> Hace ${dias}d</span>`;
+    }
     return`<div class="client-card" onclick="verCliente('${c.id}')">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar">${c.nombre.slice(0,2).toUpperCase()}</div>
+        <div class="avatar" style="${dias!==null&&dias>=30?'background:rgba(167,139,250,0.15);border-color:rgba(167,139,250,0.3);color:var(--purple)':''}">${c.nombre.slice(0,2).toUpperCase()}</div>
         <div>
           <div style="font-size:13px;font-weight:500">${c.nombre}</div>
           <div style="font-size:12px;color:var(--text2)">${c.zona}${c.contacto?' · '+c.contacto:''}${c.tel?' · '+c.tel:''}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        ${vc.length?`<span class="badge badge-blue">${vc.length} compra${vc.length>1?'s':''}</span>`:''}
-        ${pendientes>0?`<span class="badge badge-purple">${pendientes} a entregar</span>`:''}
-        ${(c.deuda||0)>0?`<span class="badge badge-red">${fmt(c.deuda)}</span>`:'<span class="badge badge-green">Al día</span>'}
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${actBadge}
+        ${vc.length?`<span class="badge badge-blue" style="font-size:10px">${vc.length} compra${vc.length>1?'s':''}</span>`:''}
+        ${pendientes>0?`<span class="badge badge-purple" style="font-size:10px">${pendientes} a entregar</span>`:''}
+        ${(c.deuda||0)>0?`<span class="badge badge-red" style="font-size:10px">${fmt(c.deuda)}</span>`:'<span class="badge badge-green" style="font-size:10px">Al día</span>'}
       </div>
     </div>`}).join('');
 }
@@ -1878,14 +1965,21 @@ function verCliente(cid){
   const tc=vc.reduce((a,v)=>a+Number(v.total),0);
   const tg=vc.reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0);
   const pendEntrega=vc.filter(v=>!v.entregado).length;
+  const diasUltima=diasDesdeUltimaCompra(cid);
+  const alertaDormido=diasUltima!==null&&diasUltima>=30
+    ?`<div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;color:var(--purple)"><i class="ti ti-moon"></i> Última compra hace <strong>${diasUltima} días</strong> — buen momento para contactarlo</div>`
+    :diasUltima===null
+    ?`<div style="background:rgba(153,153,170,0.06);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;color:var(--text3)"><i class="ti ti-user-off"></i> Nunca registró una compra</div>`
+    :`<div style="font-size:11px;color:var(--text3);margin-top:6px"><i class="ti ti-check" style="color:var(--green)"></i> Última compra hace ${diasUltima} días</div>`;
   document.getElementById('detalle-cliente-content').innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:14px">
-        <div class="avatar" style="width:46px;height:46px;font-size:16px">${cl.nombre.slice(0,2).toUpperCase()}</div>
+        <div class="avatar" style="width:46px;height:46px;font-size:16px${diasUltima!==null&&diasUltima>=30?';background:rgba(167,139,250,0.15);border-color:rgba(167,139,250,0.3);color:var(--purple)':''}">${cl.nombre.slice(0,2).toUpperCase()}</div>
         <div>
           <div style="font-size:15px;font-weight:500;margin-bottom:3px">${cl.nombre}</div>
           <div style="font-size:12px;color:var(--text2)">${cl.zona}${cl.contacto?' · '+cl.contacto:''}${cl.tel?' · '+cl.tel:''}</div>
           ${cl.dir?`<div style="font-size:12px;color:var(--text3)">${cl.dir}</div>`:''}
+          ${alertaDormido}
         </div>
       </div>
       <button class="btn" onclick="abrirEditarCliente('${cid}')"><i class="ti ti-edit"></i> Editar</button>
