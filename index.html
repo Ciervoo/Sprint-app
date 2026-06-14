@@ -121,7 +121,34 @@ tr.clickable-row:hover td{background:var(--bg4)}
 .contab-mov-egreso td:last-child{color:var(--red)}
 .contab-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
 @media(max-width:768px){.upload-zone{padding:32px 16px}.contab-summary{grid-template-columns:1fr 1fr}}
-
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);opacity:0;transform:translateX(16px);transition:all 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.45);pointer-events:auto;min-width:210px}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.toast-ok{border-color:rgba(74,222,128,0.35);background:rgba(74,222,128,0.08);color:var(--green)}
+.toast.toast-err{border-color:rgba(248,113,113,0.35);background:rgba(248,113,113,0.08);color:var(--red)}
+.toast.toast-warn{border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);color:var(--amber)}
+/* ── PROGRESS BAR ── */
+.progress-wrap{height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:4px;transition:width 0.6s ease;background:var(--accent)}
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--bg2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent)}
+.filter-bar input[type="text"]{min-width:170px}
+.filter-bar select{min-width:140px}
+.filter-bar input[type="date"]{min-width:128px}
+.filter-reset{font-size:11px;color:var(--text3);cursor:pointer;padding:2px 6px;border-radius:4px}
+.filter-reset:hover{color:var(--text);background:var(--bg3)}
+/* ── DASHBOARD EXTRAS ── */
+.dash-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.dash-card-title{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.deuda-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.deuda-row:last-child{border-bottom:none}
+.alert-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
+.alert-pill.crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.2)}
+.alert-pill.warn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.2)}
 /* ── RESPONSIVE MOBILE ── */
 @media(max-width:768px){
   body{overflow:hidden;height:100dvh}
@@ -231,6 +258,7 @@ tr.clickable-row:hover td{background:var(--bg4)}
 </style>
 </head>
 <body>
+<div id="toast-container"></div>
 
 <!-- Overlay de carga -->
 <div id="loading-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px">
@@ -278,8 +306,40 @@ tr.clickable-row:hover td{background:var(--bg4)}
   <div class="main">
 
     <div class="section active" id="sec-dashboard">
-      <div class="top-bar"><h2>Resumen general</h2></div>
+      <div class="top-bar">
+        <h2>Resumen general</h2>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--text2)">Meta del mes</span>
+          <input type="number" id="dash-meta-input" min="0" step="10000" placeholder="0"
+            style="width:120px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg2);color:var(--text);font-family:'DM Mono',monospace;outline:none"
+            oninput="saveMeta(this.value)" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+          <span style="font-size:11px;color:var(--text3)">$</span>
+        </div>
+      </div>
       <div class="metrics" id="dash-metrics"></div>
+      <!-- Meta progreso -->
+      <div id="dash-meta-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Progreso del mes</span>
+          <span id="dash-meta-pct" style="font-size:13px;font-family:'DM Mono',monospace;color:var(--accent)"></span>
+        </div>
+        <div class="progress-wrap"><div class="progress-fill" id="dash-meta-fill" style="width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span id="dash-meta-actual" style="font-size:11px;color:var(--text2)"></span>
+          <span id="dash-meta-target" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+      </div>
+      <!-- Fila 2: alertas stock + deuda -->
+      <div class="dash-row" id="dash-row-extra">
+        <div class="dash-card" id="dash-stock-alerts">
+          <div class="dash-card-title"><i class="ti ti-alert-triangle" style="color:var(--amber)"></i> Alertas de stock</div>
+          <div id="dash-alerts-content"><span style="font-size:12px;color:var(--text3)">Calculando...</span></div>
+        </div>
+        <div class="dash-card" id="dash-deuda-panel">
+          <div class="dash-card-title"><i class="ti ti-credit-card" style="color:var(--red)"></i> Top deudores</div>
+          <div id="dash-deuda-content"><span style="font-size:12px;color:var(--text3)">Sin deudas</span></div>
+        </div>
+      </div>
       <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Últimas ventas</div>
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Total</th><th>Origen</th><th>Entrega</th><th>Cobro</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
     </div>
@@ -288,6 +348,16 @@ tr.clickable-row:hover td{background:var(--bg4)}
       <div class="top-bar">
         <h2>Todas las ventas</h2>
         <button class="btn btn-primary" onclick="abrirModalVenta(null,null)"><i class="ti ti-plus"></i> Nueva venta</button>
+      </div>
+      <div class="filter-bar" id="ventas-filter-bar">
+        <input type="text" id="vf-search" placeholder="Buscar producto..." oninput="renderVentas()" style="background:var(--bg2)">
+        <select id="vf-taller" onchange="renderVentas()" style="background:var(--bg2)">
+          <option value="">Todos los talleres</option>
+        </select>
+        <input type="date" id="vf-desde" onchange="renderVentas()" title="Desde" style="background:var(--bg2)">
+        <input type="date" id="vf-hasta" onchange="renderVentas()" title="Hasta" style="background:var(--bg2)">
+        <span class="filter-reset" onclick="limpiarFiltrosVentas()" title="Limpiar filtros"><i class="ti ti-x"></i> Limpiar</span>
+        <span id="vf-count" class="filter-count"></span>
       </div>
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant</th><th>Precio</th><th>Desc</th><th>Total</th><th>Pago</th><th>Origen</th><th>Entrega</th><th>Cobro</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
     </div>
@@ -668,6 +738,44 @@ let ventaEditandoId=null;
 let ventaEditandoGrupo=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR')}
+
+// ── TOAST ──
+function showToast(msg,type='ok'){
+  const tc=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  const ico={ok:'circle-check',err:'alert-circle',warn:'alert-triangle'};
+  t.className='toast toast-'+type;
+  t.innerHTML=`<i class="ti ti-${ico[type]||'circle-check'}"></i> ${msg}`;
+  tc.appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3200);
+}
+
+// ── META MENSUAL ──
+function saveMeta(v){
+  const val=parseInt(v)||0;
+  localStorage.setItem('sprint_meta_mensual',val);
+  renderDashboard();
+}
+function loadMeta(){
+  return parseInt(localStorage.getItem('sprint_meta_mensual'))||0;
+}
+
+// ── FILTROS VENTAS ──
+function limpiarFiltrosVentas(){
+  ['vf-search','vf-desde','vf-hasta'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sel=document.getElementById('vf-taller');if(sel)sel.value='';
+  renderVentas();
+}
+function poblarSelectTalleres(){
+  const sel=document.getElementById('vf-taller');
+  if(!sel)return;
+  const val=sel.value;
+  sel.innerHTML='<option value="">Todos los talleres</option>'+
+    [...DB.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre))
+      .map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  sel.value=val;
+}
 function today(){return new Date().toISOString().slice(0,10)}
 
 // ── INIT ──
@@ -704,6 +812,11 @@ async function initApp(){
   }
   overlay.style.display='none';
   checkMigracion();
+  poblarSelectTalleres();
+  // Restaurar meta mensual guardada
+  const metaSaved=loadMeta();
+  const mi=document.getElementById('dash-meta-input');
+  if(mi&&metaSaved)mi.value=metaSaved;
   renderDashboard();
 }
 
@@ -1084,14 +1197,16 @@ async function guardarVenta(){
     }
   }catch(e){
     console.error(e);
-    alert('Error al guardar la venta. Intentá de nuevo.');
+    showToast('Error al guardar la venta: '+e.message,'err');
     btn.disabled=false;
     return;
   }
+  const fueEdicion=!!(ventaEditandoId||ventaEditandoGrupo);
   ventaEditandoId=null;
   ventaEditandoGrupo=null;
   btn.disabled=false;
   closeModal('modal-venta');
+  showToast(fueEdicion?'Venta actualizada':'Venta registrada');
   if(clienteActivo===cid)verCliente(cid);
   renderVentas();renderDashboard();
 }
@@ -1270,12 +1385,14 @@ async function guardarCompra(){
     DB.stock[pid]=ns2;
   }catch(e){
     console.error(e);
-    alert('Error al guardar la compra.');
+    showToast('Error al guardar la compra: '+e.message,'err');
     btn.disabled=false;
     return;
   }
   btn.disabled=false;
-  closeModal('modal-compra');renderCompras();renderStock();renderDashboard();
+  closeModal('modal-compra');
+  showToast(existingId?'Compra actualizada':'Compra registrada al stock');
+  renderCompras();renderStock();renderDashboard();
 }
 
 // ── CLIENTE ──
@@ -1327,12 +1444,14 @@ async function guardarCliente(){
     }
   }catch(e){
     console.error(e);
-    alert('Error al guardar el cliente.');
+    showToast('Error al guardar el cliente: '+e.message,'err');
     btn.disabled=false;
     return;
   }
   btn.disabled=false;
   closeModal('modal-cliente');
+  showToast(existingId?'Cliente actualizado':'Cliente agregado');
+  poblarSelectTalleres();
   renderClientes();
   if(existingId&&clienteActivo===existingId)verCliente(existingId);
 }
@@ -1397,15 +1516,62 @@ function renderDashboard(){
   const ventasReales=DB.ventas.filter(v=>v.entregado&&Number(v.cobrado)>=Number(v.total));
   const tv=ventasReales.reduce((a,v)=>a+Number(v.total),0);
   const tg=ventasReales.reduce((a,v)=>a+(Number(v.total)-Number(v.costo)),0);
-  // Devengado: pedidos que existen pero no están entregados O no cobrados
   const devengado=DB.ventas.filter(v=>!v.entregado||Number(v.cobrado)<Number(v.total)).reduce((a,v)=>a+Number(v.total),0);
   const td=DB.clientes.reduce((a,c)=>a+(Number(c.deuda)||0),0);
   const pendEntrega=DB.ventas.filter(v=>!v.entregado).length;
+
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric"><div class="metric-label">Cobrado y entregado</div><div class="metric-val">${fmt(tv)}</div></div>
     <div class="metric"><div class="metric-label">Ganancia real</div><div class="metric-val" style="color:var(--green)">${fmt(tg)}</div></div>
     <div class="metric"><div class="metric-label" title="Pedidos no entregados o no cobrados aún">Devengado (pend.)</div><div class="metric-val" style="color:var(--amber)">${fmt(devengado)}</div></div>
     <div class="metric"><div class="metric-label">Deuda clientes</div><div class="metric-val" style="color:var(--red)">${fmt(td)}</div></div>`;
+
+  // ── META MENSUAL ──
+  const meta=loadMeta();
+  const metaInput=document.getElementById('dash-meta-input');
+  if(metaInput&&!metaInput.matches(':focus'))metaInput.value=meta||'';
+  const mesActual=new Date().toISOString().slice(0,7); // "2026-06"
+  const tvMes=DB.ventas.filter(v=>v.entregado&&Number(v.cobrado)>=Number(v.total)&&(v.fecha||'').startsWith(mesActual))
+    .reduce((a,v)=>a+Number(v.total),0);
+  const barEl=document.getElementById('dash-meta-bar');
+  if(meta>0){
+    const pct=Math.min(100,Math.round(tvMes/meta*100));
+    barEl.style.display='block';
+    document.getElementById('dash-meta-fill').style.width=pct+'%';
+    document.getElementById('dash-meta-fill').style.background=pct>=100?'var(--green)':pct>=60?'var(--accent)':'var(--amber)';
+    document.getElementById('dash-meta-pct').textContent=pct+'%';
+    document.getElementById('dash-meta-actual').textContent=fmt(tvMes)+' cobrado este mes';
+    document.getElementById('dash-meta-target').textContent='Meta: '+fmt(meta);
+  } else {
+    barEl.style.display='none';
+  }
+
+  // ── ALERTAS STOCK ──
+  const criticos=PRODUCTOS.filter(p=>(DB.stock[p.id]||0)<=0);
+  const bajos=PRODUCTOS.filter(p=>(DB.stock[p.id]||0)>0&&(DB.stock[p.id]||0)<=2);
+  const alertEl=document.getElementById('dash-alerts-content');
+  if(!criticos.length&&!bajos.length){
+    alertEl.innerHTML='<span style="font-size:12px;color:var(--green)"><i class="ti ti-circle-check"></i> Todo en stock</span>';
+  } else {
+    alertEl.innerHTML=[
+      ...criticos.map(p=>`<span class="alert-pill crit"><i class="ti ti-package-off"></i> ${p.nombre.split(' ').slice(0,3).join(' ')} — sin stock</span>`),
+      ...bajos.map(p=>`<span class="alert-pill warn"><i class="ti ti-alert-triangle"></i> ${p.nombre.split(' ').slice(0,3).join(' ')} — ${DB.stock[p.id]} ud.</span>`)
+    ].join('');
+  }
+
+  // ── TOP DEUDORES ──
+  const deudEl=document.getElementById('dash-deuda-content');
+  const deudores=DB.clientes.filter(c=>(c.deuda||0)>0).sort((a,b)=>b.deuda-a.deuda).slice(0,5);
+  if(!deudores.length){
+    deudEl.innerHTML='<span style="font-size:12px;color:var(--green)"><i class="ti ti-circle-check"></i> Sin deudas pendientes</span>';
+  } else {
+    deudEl.innerHTML=deudores.map(c=>`<div class="deuda-row">
+      <span style="font-size:12px;cursor:pointer;color:var(--text)" onclick="verCliente('${c.id}');closeModal('modal-detalle-cliente')">${c.nombre}</span>
+      <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--red)">${fmt(c.deuda)}</span>
+    </div>`).join('');
+  }
+
+  // ── ÚLTIMAS VENTAS ──
   const ul=[...DB.ventas].reverse().slice(0,8);
   document.getElementById('dash-tbody').innerHTML=ul.length?ul.map(v=>{
     const cl=DB.clientes.find(c=>c.id===v.cid);
@@ -1413,7 +1579,7 @@ function renderDashboard(){
     return`<tr>
       <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
       <td>${cl?cl.nombre:'-'}</td>
-      <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</td>
+      <td style="color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p?p.nombre:v.pid}">${p?p.nombre:v.pid}</td>
       <td class="mono">${fmt(v.total)}</td>
       <td>${badgeOrigen(v.origen)}</td>
       <td>${badgeEntrega(v.entregado,v.id)}</td>
@@ -1518,13 +1684,41 @@ function renderVentas(){
   if(ventasMarcaFiltro){
     items=items.filter(item=>{
       if(item.type==='single') return ventaMarca(item.v)===ventasMarcaFiltro;
-      // Grupo: incluir si AL MENOS un item es de la marca
       return item.vs.some(v=>ventaMarca(v)===ventasMarcaFiltro);
     });
   }
 
+  // Filtros de búsqueda (sólo para sec-ventas, no para las secciones marca)
+  const srch=(document.getElementById('vf-search')||{}).value?.toLowerCase()||'';
+  const tallerFiltro=(document.getElementById('vf-taller')||{}).value||'';
+  const desde=(document.getElementById('vf-desde')||{}).value||'';
+  const hasta=(document.getElementById('vf-hasta')||{}).value||'';
+
+  if(srch||tallerFiltro||desde||hasta){
+    items=items.filter(item=>{
+      const ventas=item.type==='single'?[item.v]:item.vs;
+      const cl=DB.clientes.find(c=>c.id===ventas[0].cid);
+      // Taller
+      if(tallerFiltro&&ventas[0].cid!==tallerFiltro)return false;
+      // Fecha
+      const fecha=ventas[0].fecha||'';
+      if(desde&&fecha<desde)return false;
+      if(hasta&&fecha>hasta)return false;
+      // Búsqueda texto: producto o cliente
+      if(srch){
+        const hayProd=ventas.some(v=>{const p=PRODUCTOS.find(x=>x.id===v.pid);return p&&p.nombre.toLowerCase().includes(srch);});
+        const hayCliente=cl&&cl.nombre.toLowerCase().includes(srch);
+        if(!hayProd&&!hayCliente)return false;
+      }
+      return true;
+    });
+  }
+
+  const vfCount=document.getElementById('vf-count');
+  if(vfCount)vfCount.textContent=items.length?`${items.length} resultado${items.length>1?'s':''}` :'';
+
   const tbody=document.getElementById('ventas-tbody');
-  if(!items.length){tbody.innerHTML=`<tr><td colspan="12" class="empty">Sin ventas registradas</td></tr>`;return;}
+  if(!items.length){tbody.innerHTML=`<tr><td colspan="12" class="empty">Sin ventas${srch||tallerFiltro?` que coincidan con el filtro`:''}</td></tr>`;return;}
 
   tbody.innerHTML=items.map(item=>{
     if(item.type==='single'){
@@ -1637,9 +1831,9 @@ async function recalcularStock(){
     renderStock();renderDashboard();
     if(cambios.length){
       const detalle=cambios.map(c=>`• ${c.nombre}: ${c.antes} → ${c.ahora}`).join('\n');
-      alert(`✅ Stock recalculado. Se corrigieron ${cambios.length} producto${cambios.length>1?'s':''}:\n\n${detalle}`);
+      showToast(`Stock corregido en ${cambios.length} producto${cambios.length>1?'s':''}. ${detalle.replace(/\n/g,' | ')}`,'warn');
     } else {
-      alert('✅ Stock verificado — todo estaba correcto, no hubo cambios.');
+      showToast('Stock verificado — todo estaba correcto','ok');
     }
   }catch(e){
     console.error(e);
@@ -1705,19 +1899,19 @@ function verCliente(cid){
       <div class="tab" onclick="tabCliente(this,'tab-cp')">Pagos (${pc.length})</div>
     </div>
     <div id="tab-cv">
-      ${vc.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Cant</th><th>Total</th><th>Pago</th><th>Origen</th><th>Entrega</th><th>Cobro</th><th></th></tr></thead><tbody>
+      ${vc.length?`<div class="table-wrap" style="overflow-x:auto"><table style="min-width:600px"><thead><tr><th>Fecha</th><th>Producto</th><th>Cant</th><th>Total</th><th>Pago</th><th>Entrega</th><th>Cobro</th><th style="width:40px"></th></tr></thead><tbody>
         ${[...vc].reverse().map(v=>{
           const p=PRODUCTOS.find(x=>x.id===v.pid);
+          const gv=v.grupo_venta?Number(v.grupo_venta):null;
           return`<tr>
-            <td class="mono" style="color:var(--text2);font-size:12px">${v.fecha}</td>
-            <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</td>
-            <td>${v.cant}</td>
-            <td class="mono">${fmt(v.total)}</td>
-            <td><span class="badge badge-blue">${v.pago}</span></td>
-            <td>${badgeOrigen(v.origen)}</td>
+            <td class="mono" style="color:var(--text2);font-size:12px;white-space:nowrap">${v.fecha}</td>
+            <td style="color:var(--text2)" title="${p?p.nombre:v.pid}"><span style="display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p?p.nombre:v.pid}</span></td>
+            <td style="white-space:nowrap">${v.cant}</td>
+            <td class="mono" style="white-space:nowrap">${fmt(v.total)}</td>
+            <td><span class="badge badge-blue" style="white-space:nowrap">${v.pago}</span></td>
             <td>${badgeEntrega(v.entregado,v.id)}</td>
             <td>${badgeCobro(v.cobrado,v.total,v.id)}</td>
-            <td><button class="btn-icon" onclick="abrirModalVenta('${cid}',${v.id})" title="Editar"><i class="ti ti-edit"></i></button></td>
+            <td><button class="btn-icon" onclick="abrirModalVenta('${cid}',${v.id},${gv||'null'})" title="Editar venta"><i class="ti ti-edit"></i></button></td>
           </tr>`}).join('')}
         </tbody></table></div>`
       :'<div class="empty">Sin compras todavía</div>'}
@@ -2281,7 +2475,7 @@ async function guardarManualBatch(){
   }
   if(errores>0)alert(`⚠️ ${ok} cargadas, ${errores} fallaron.`);
   else{
-    alert(`✅ ${ok} compra${ok!==1?'s':''} registrada${ok!==1?'s':''} correctamente.`);
+    showToast(`${ok} compra${ok!==1?'s':''} registrada${ok!==1?'s':''} correctamente`);
     document.getElementById('manual-rows-tbody').innerHTML='';
     addManualRow();
     renderStock();renderDashboard();renderCompras();
